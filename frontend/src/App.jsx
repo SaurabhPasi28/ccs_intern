@@ -1,0 +1,193 @@
+// import React from "react";
+// import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+// import Register from "./components/Register";
+// import Login from "./components/Login";
+// import VerifyEmail from "./components/VerifyEmail";
+// import ForgotPassword from "./components/ForgotPassword";
+// import ResetPassword from "./components/ResetPassword";
+// import Dashboard from "./components/Dashboard";
+
+// function PrivateRoute({ children }) {
+//   const token = localStorage.getItem("token");
+//   return token ? children : <Navigate to="/login" replace />;
+// }
+
+
+// function PublicRoute({ children }) {
+//   const token = localStorage.getItem("token");
+//   return token ? <Navigate to="/dashboard" replace /> : children;
+// }
+
+// function App() {
+//   return (
+//     <Router>
+//       <Routes>
+//         {/* Redirect root */}
+//         <Route path="/" element={<Navigate to="/register" replace />} />
+
+//         {/* Public routes */}
+//         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+//         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+//         <Route path="/verify-email/:token" element={<VerifyEmail />} />
+//         <Route path="/forgot-password" element={<ForgotPassword />} />
+//         <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+//         {/* Protected route */}
+//         <Route
+//           path="/dashboard"
+//           element={
+//             <PrivateRoute>
+//               <Dashboard />
+//             </PrivateRoute>
+//           }
+//         />
+
+//         {/* Catch-all redirect */}
+//         <Route path="*" element={<Navigate to="/" replace />} />
+//       </Routes>
+//     </Router>
+//   );
+// }
+
+// export default App;
+
+
+
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+
+/* Auth Pages */
+import Register from "./components/Register";
+import Login from "./components/Login";
+import VerifyEmail from "./components/VerifyEmail";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
+
+/* Dashboard */
+import Dashboard from "./components/Dashboard";
+
+/* Profile Pages (already created by you) */
+import StudentProfile from "./components/student/StudentProfile";
+import SchoolProfile from "./components/school/SchoolProfile";
+import CollegeProfile from "./components/college/CollegeProfile";
+import UniversityProfile from "./components/university/UniversityProfile";
+import CompanyProfile from "./components/company/CompanyProfile";
+import CompanyPublicProfile from "./components/company/CompanyPublicProfile";
+
+/* ---------------- Route Guards ---------------- */
+
+function PrivateRoute({ children }) {
+  const token = localStorage.getItem("token");
+  return token ? children : <Navigate to="/login" replace />;
+}
+
+function PublicRoute({ children }) {
+  const token = localStorage.getItem("token");
+  return token ? <Navigate to="/dashboard" replace /> : children;
+}
+
+/* ---------------- App ---------------- */
+
+function App() {
+  return (
+    <Router future={{
+      v7_startTransition: true,
+      v7_relativeSplatPath: true
+    }}>
+      <Routes>
+        {/* Root redirect */}
+        <Route path="/" element={<Navigate to="/register" replace />} />
+
+        {/* Public routes */}
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+
+        <Route path="/verify-email/:token" element={<VerifyEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+        {/*Bellow two are lines added by me */}
+        {/* Public Company Profile - No Authentication Required */}
+        <Route path="/company/:id" element={<CompanyPublicProfile />} />
+        {/* <Route path="/company/check" element={<CompanyPublicProfile />} /> */}
+
+
+        {/* Dashboard (single entry after login) */}
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Profile routes (navigated via Profile button) */}
+        <Route
+          path="/profile/student"
+          element={
+            <PrivateRoute>
+              <StudentProfile />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/profile/school"
+          element={
+            <PrivateRoute>
+              <SchoolProfile />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/profile/college"
+          element={
+            <PrivateRoute>
+              <CollegeProfile />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/profile/university"
+          element={
+            <PrivateRoute>
+              <UniversityProfile />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/profile/company"
+          element={
+            <PrivateRoute>
+              <CompanyProfile />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
