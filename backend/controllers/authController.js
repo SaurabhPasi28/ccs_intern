@@ -33,8 +33,8 @@ exports.registerUser = async (req, res) => {
 
         await pool.query(
             `INSERT INTO users
-      (name, email, password, user_type, referral_code, verification_token)
-      VALUES ($1,$2,$3,$4,$5,$6)`,
+            (name, email, password, user_type, referral_code, verification_token)
+            VALUES ($1,$2,$3,$4,$5,$6)`,
             [name.trim(), email.toLowerCase().trim(), hashedPassword, user_type, referral_code || null, verificationToken]
         );
         res.status(201).json({

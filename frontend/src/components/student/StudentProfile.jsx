@@ -6,6 +6,7 @@ import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import { toast } from "sonner";
 import { STATES_AND_CITIES, SKILL_OPTIONS, CERTIFICATIONS } from "../data/statesAndCities";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const DEGREE_OPTIONS = [
     "B.Tech", "M.Tech", "B.E.", "M.E.", "BSc", "MSc", "BCA", "MCA",
@@ -55,7 +56,7 @@ export default function StudentProfile() {
 
     const fetchProfile = async () => {
         try {
-            const res = await fetch("http://localhost:5000/api/profile", {
+            const res = await fetch(`${API_URL}/api/profile`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
@@ -97,7 +98,7 @@ export default function StudentProfile() {
     };
 
     const updateProfile = async () => {
-        const { ok } = await apiCall("http://localhost:5000/api/profile", "PUT", profile);
+        const { ok } = await apiCall(`${API_URL}/api/profile`, "PUT", profile);
         if (ok) {
             toast.success("Profile saved! Redirecting to dashboard...");
             setTimeout(() => navigate("/dashboard"), 1000);
@@ -108,7 +109,7 @@ export default function StudentProfile() {
 
     const addEducation = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall("http://localhost:5000/api/profile/education", "POST", educationForm);
+        const { ok } = await apiCall(`${API_URL}/api/profile/education`, "POST", educationForm);
         if (ok) {
             toast.success("Education added");
             setShowEducationForm(false);
@@ -118,13 +119,13 @@ export default function StudentProfile() {
     };
 
     const deleteEducation = async (id) => {
-        const { ok } = await apiCall(`http://localhost:5000/api/profile/education/${id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/api/profile/education/${id}`, "DELETE");
         if (ok) { toast.success("Deleted"); fetchProfile(); }
     };
 
     const addExperience = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall("http://localhost:5000/api/profile/experience", "POST", experienceForm);
+        const { ok } = await apiCall(`${API_URL}/api/profile/experience`, "POST", experienceForm);
         if (ok) {
             toast.success("Experience added");
             setShowExperienceForm(false);
@@ -134,7 +135,7 @@ export default function StudentProfile() {
     };
 
     const deleteExperience = async (id) => {
-        const { ok } = await apiCall(`http://localhost:5000/api/profile/experience/${id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/api/profile/experience/${id}`, "DELETE");
         if (ok) { toast.success("Deleted"); fetchProfile(); }
     };
 
@@ -150,7 +151,7 @@ export default function StudentProfile() {
 
     const addSkill = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall("http://localhost:5000/api/profile/skills", "POST", skillForm);
+        const { ok } = await apiCall(`${API_URL}/api/profile/skills`, "POST", skillForm);
         if (ok) {
             toast.success("Skill added");
             setShowSkillForm(false);
@@ -161,13 +162,13 @@ export default function StudentProfile() {
     };
 
     const deleteSkill = async (skill_id) => {
-        const { ok } = await apiCall(`http://localhost:5000/api/profile/skills/${skill_id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/api/profile/skills/${skill_id}`, "DELETE");
         if (ok) { toast.success("Deleted"); fetchProfile(); }
     };
 
     const addCertification = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall("http://localhost:5000/api/profile/certifications", "POST", certificationForm);
+        const { ok } = await apiCall(`${API_URL}/api/profile/certifications`, "POST", certificationForm);
         if (ok) {
             toast.success("Certification added");
             setShowCertificationForm(false);
@@ -177,7 +178,7 @@ export default function StudentProfile() {
     };
 
     const deleteCertification = async (id) => {
-        const { ok } = await apiCall(`http://localhost:5000/api/profile/certifications/${id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/api/profile/certifications/${id}`, "DELETE");
         if (ok) { toast.success("Deleted"); fetchProfile(); }
     };
 
@@ -194,7 +195,7 @@ export default function StudentProfile() {
             if (selectedProfileImage) formData.append("profileImage", selectedProfileImage);
             if (selectedBannerImage) formData.append("bannerImage", selectedBannerImage);
 
-            const res = await fetch("http://localhost:5000/api/profile/media", {
+            const res = await fetch(`${API_URL}/api/profile/media`, {
                 method: "PATCH",
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
@@ -223,7 +224,7 @@ export default function StudentProfile() {
 
     const clearImages = async () => {
         try {
-            const res = await fetch("http://localhost:5000/api/profile/media/clear", {
+            const res = await fetch(`${API_URL}/api/profile/media/clear`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -242,7 +243,7 @@ export default function StudentProfile() {
     if (loading) return <div className="p-8">Loading...</div>;
 
     const bannerStyle = profile.banner_image_url
-        ? { backgroundImage: `url(http://localhost:5000${profile.banner_image_url})`, backgroundSize: "cover", backgroundPosition: "center" }
+        ? { backgroundImage: `${API_URL}${profile.banner_image_url})`, backgroundSize: "cover", backgroundPosition: "center" }
         : {};
 
     return (
@@ -281,7 +282,7 @@ export default function StudentProfile() {
                                                             const formData = new FormData();
                                                             formData.append("profileImage", e.target.files[0]);
                                                             setMediaUploading(true);
-                                                            fetch("http://localhost:5000/api/profile/media", {
+                                                            fetch(`${API_URL}/api/profile/media`, {
                                                                 method: "PATCH",
                                                                 headers: { Authorization: `Bearer ${token}` },
                                                                 body: formData,
@@ -317,7 +318,7 @@ export default function StudentProfile() {
                                                             const formData = new FormData();
                                                             formData.append("bannerImage", e.target.files[0]);
                                                             setMediaUploading(true);
-                                                            fetch("http://localhost:5000/api/profile/media", {
+                                                            fetch(`${API_URL}/api/profile/media`, {
                                                                 method: "PATCH",
                                                                 headers: { Authorization: `Bearer ${token}` },
                                                                 body: formData,
@@ -361,7 +362,7 @@ export default function StudentProfile() {
                             <div className="px-6 pb-6 flex flex-wrap items-end gap-4 -mt-12">
                                 <div className="w-20 h-20 rounded-full bg-white shadow flex items-center justify-center ring-4 ring-white overflow-hidden">
                                     {profile.profile_image_url ? (
-                                        <img src={`http://localhost:5000${profile.profile_image_url}`} alt="Profile" className="w-full h-full object-cover" />
+                                        <img src={`${API_URL}${profile.profile_image_url}`} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
                                         <span className="text-2xl font-semibold text-sky-700">pfp</span>
                                     )}

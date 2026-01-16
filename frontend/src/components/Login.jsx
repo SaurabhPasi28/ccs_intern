@@ -1,3 +1,5 @@
+// import dotenv from "dotenv";
+// dotenv.config();
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -12,7 +14,8 @@ import { Label } from "@/components/ui/label";
 import img1 from "../assets/img1.png";
 import img3 from "../assets/img3.png";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL;
+console.log(API_URL,'_________>api url')
 
 /* ---------------- Image Slideshow ---------------- */
 function ImageSlideshow({ images }) {
@@ -72,7 +75,7 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/auth/login`, {
+      const res = await axios.post(`${API_URL}/api/auth/login`, {
         email: email.toLowerCase().trim(), // ✅ keep normalization
         password,
       });
@@ -86,7 +89,7 @@ export default function Login() {
       toast.success("Welcome back 🎉");
       navigate("/dashboard");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Login failed");
+      toast.error(err.response?.data?.message || "Login failed-");
     } finally {
       setLoading(false);
     }

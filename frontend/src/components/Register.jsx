@@ -12,7 +12,8 @@ import img1 from "../assets/img1.png";
 import img2 from "../assets/img2.png";
 import img3 from "../assets/img3.png";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL;
+// const API_URL = "http://localhost:5000/api";
 
 // User type options with icons
 const USER_TYPES = [
@@ -76,7 +77,7 @@ function CheckEmail({ email, setIsRegistered }) {
   const handleResend = async () => {
     if (cooldown > 0) return;
     try {
-      await axios.post(`${API_URL}/auth/resend-verification`, { email });
+      await axios.post(`${API_URL}/api/auth/resend-verification`, { email });
       toast.success("Verification email resent successfully!");
       setCooldown(30);
     } catch (err) {
@@ -168,7 +169,7 @@ export default function Register() {
     };
 
     try {
-      await axios.post(`${API_URL}/auth/register`, payload, { withCredentials: true });
+      await axios.post(`${API_URL}/api/auth/register`, payload, { withCredentials: true });
       toast.success("Registration successful! Check your email to verify your account.");
       setIsRegistered(true);
     } catch (err) {

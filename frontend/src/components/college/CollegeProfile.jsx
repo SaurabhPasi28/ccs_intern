@@ -5,7 +5,7 @@ import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import { toast } from "sonner";
 import { STATES_AND_CITIES } from "../data/statesAndCities";
-
+const API_URL = import.meta.env.VITE_API_URL;
 
 const COLLEGE_TYPES = [
     "University",
@@ -107,7 +107,7 @@ export default function CollegeProfile() {
 
     const fetchCollege = async () => {
         try {
-            const { ok, data } = await apiCall("http://localhost:5000/api/college", "GET");
+            const { ok, data } = await apiCall(`${API_URL}/api/college`, "GET");
             if (ok) {
                 const c = data.college || {};
                 setCollege({
@@ -138,7 +138,7 @@ export default function CollegeProfile() {
     };
 
     const saveCollege = async () => {
-        const { ok, data } = await apiCall("http://localhost:5000/api/college", "PUT", college);
+        const { ok, data } = await apiCall(`${API_URL}/api/college`, "PUT", college);
         if (ok) {
             toast.success("College profile saved");
             setCollege((prev) => ({ ...prev, ...data.college }));
@@ -149,7 +149,7 @@ export default function CollegeProfile() {
 
     const saveProgram = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall("http://localhost:5000/api/college/programs", "POST", programForm);
+        const { ok } = await apiCall(`${API_URL}/api/college/programs`, "POST", programForm);
         if (ok) {
             toast.success("Program added");
             setProgramForm({ degree_level: "", program_name: "", specialization: "", duration_years: "", annual_fees: "", total_seats: "" });
@@ -160,7 +160,7 @@ export default function CollegeProfile() {
     };
 
     const deleteProgram = async (id) => {
-        const { ok } = await apiCall(`http://localhost:5000/api/college/programs/${id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/api/college/programs/${id}`, "DELETE");
         if (ok) {
             toast.success("Program deleted");
             fetchCollege();
@@ -169,7 +169,7 @@ export default function CollegeProfile() {
 
     const addFacility = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall("http://localhost:5000/api/college/facilities", "POST", facilityForm);
+        const { ok } = await apiCall(`${API_URL}/api/college/facilities`, "POST", facilityForm);
         if (ok) {
             toast.success("Facility added");
             setFacilityForm({ facility_name: "" });
@@ -178,13 +178,13 @@ export default function CollegeProfile() {
     };
 
     const deleteFacility = async (id) => {
-        const { ok } = await apiCall(`http://localhost:5000/api/college/facilities/${id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/api/college/facilities/${id}`, "DELETE");
         if (ok) { toast.success("Deleted"); fetchCollege(); }
     };
 
     const addPlacement = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall("http://localhost:5000/api/college/placements", "POST", placementForm);
+        const { ok } = await apiCall(`${API_URL}/api/college/placements`, "POST", placementForm);
         if (ok) {
             toast.success("Placement added");
             setPlacementForm({ academic_year: "", placement_percent: "", average_package: "", highest_package: "", companies_visited: "", top_recruiters: "" });
@@ -193,13 +193,13 @@ export default function CollegeProfile() {
     };
 
     const deletePlacement = async (id) => {
-        const { ok } = await apiCall(`http://localhost:5000/api/college/placements/${id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/api/college/placements/${id}`, "DELETE");
         if (ok) { toast.success("Deleted"); fetchCollege(); }
     };
 
     const addRanking = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall("http://localhost:5000/api/college/rankings", "POST", rankingForm);
+        const { ok } = await apiCall(`${API_URL}/api/college/rankings`, "POST", rankingForm);
         if (ok) {
             toast.success("Ranking added");
             setRankingForm({ ranking_body: "", rank_value: "", year: "", category: "", certificate_url: "" });
@@ -208,7 +208,7 @@ export default function CollegeProfile() {
     };
 
     const deleteRanking = async (id) => {
-        const { ok } = await apiCall(`http://localhost:5000/api/college/rankings/${id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/api/college/rankings/${id}`, "DELETE");
         if (ok) { toast.success("Deleted"); fetchCollege(); }
     };
 
@@ -218,7 +218,7 @@ export default function CollegeProfile() {
         const formData = new FormData();
         if (logoFile) formData.append("logoImage", logoFile);
         if (bannerFile) formData.append("bannerImage", bannerFile);
-        const { ok, data } = await apiCall("http://localhost:5000/api/college/media", "PATCH", formData, true);
+        const { ok, data } = await apiCall(`${API_URL}/api/college/media`, "PATCH", formData, true);
         if (ok) {
             toast.success("Images updated");
             setCollege((prev) => ({ ...prev, logo_url: data.logo_url || prev.logo_url, banner_url: data.banner_url || prev.banner_url }));
@@ -230,7 +230,7 @@ export default function CollegeProfile() {
     };
 
     const clearMedia = async () => {
-        const { ok } = await apiCall("http://localhost:5000/api/college/media/clear", "DELETE");
+        const { ok } = await apiCall(`${API_URL}/api/college/media/clear`, "DELETE");
         if (ok) {
             toast.success("Images cleared");
             setCollege((prev) => ({ ...prev, logo_url: "", banner_url: "" }));
@@ -240,7 +240,7 @@ export default function CollegeProfile() {
     if (loading) return <div className="p-8">Loading...</div>;
 
     const bannerStyle = college.banner_url
-        ? { backgroundImage: `url(http://localhost:5000${college.banner_url})`, backgroundSize: "cover", backgroundPosition: "center" }
+        ? { backgroundImage: `url(${API_URL}${college.banner_url})`, backgroundSize: "cover", backgroundPosition: "center" }
         : {};
 
     return (
@@ -254,7 +254,7 @@ export default function CollegeProfile() {
                             <div className="px-6 pb-6 flex flex-wrap items-end gap-4 -mt-12">
                                 <div className="w-20 h-20 rounded-full bg-white shadow flex items-center justify-center ring-4 ring-white overflow-hidden">
                                     {college.logo_url ? (
-                                        <img src={`http://localhost:5000${college.logo_url}`} alt="College Logo" className="w-full h-full object-cover" />
+                                        <img src={`${API_URL}${college.logo_url}`} alt="College Logo" className="w-full h-full object-cover" />
                                     ) : (
                                         <span className="text-2xl font-semibold text-sky-700">logo</span>
                                     )}

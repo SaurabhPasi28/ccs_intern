@@ -16,6 +16,8 @@ import {
     MapPinned
 } from "lucide-react";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function CompanyPublicProfile() {
     const { id } = useParams();
     const [loading, setLoading] = useState(true);
@@ -32,7 +34,7 @@ export default function CompanyPublicProfile() {
     const fetchCompanyProfile = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`http://localhost:5000/api/company/public/${id}`);
+            const response = await fetch(`${API_URL}/api/company/public/${id}`);
             const data = await response.json();
 
             if (response.ok) {
@@ -80,11 +82,11 @@ export default function CompanyPublicProfile() {
                 {company.banner_url ? (
                     // <div
                     //     className="w-full h-64 bg-cover bg-center"
-                    //     style={{ backgroundImage: `url(http://localhost:5000${company.banner_url})` }}
+                    //     style={{ backgroundImage: `url(${API_URL}${company.banner_url})` }}
                     // />
                     <div className="w-full h-72 bg-black">
                         <img
-                            src={`http://localhost:5000${company.banner_url}`}
+                            src={`${API_URL}${company.banner_url}`}
                             alt={company.name}
                             className="w-full h-full"
                         />
@@ -98,7 +100,7 @@ export default function CompanyPublicProfile() {
                
                     {company.logo_url ? (
                         <img
-                            src={`http://localhost:5000${company.logo_url}`}
+                            src={`${API_URL}${company.logo_url}`}
                             alt={company.name}
                             className="w-48 h-48 rounded-full border-4 border-white shadow-lg bg-white object-cover"
                         />

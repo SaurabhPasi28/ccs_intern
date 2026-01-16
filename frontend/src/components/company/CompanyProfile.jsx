@@ -217,7 +217,7 @@
 // import { Button } from "../ui/button";
 // import { toast } from "sonner";
 
-// const BACKEND_URL = "http://localhost:5000";
+// const API_URL = "http://localhost:5000";
 
 // export default function CompanyProfile() {
 //     const token = localStorage.getItem("token");
@@ -341,7 +341,7 @@
 //                     <div className="w-24 h-24 rounded-full bg-white shadow overflow-hidden ring-4 ring-white">
 //                         {company.logo_url ? (
 //                             <img
-//                                 src={`${BACKEND_URL}${company.logo_url}`}
+//                                 src={`${API_URL}${company.logo_url}`}
 //                                 alt="Company Logo"
 //                                 className="w-full h-full object-cover"
 //                             />
@@ -508,7 +508,7 @@
 // import { Button } from "../ui/button";
 // import { toast } from "sonner";
 
-// const BACKEND_URL = "http://localhost:5000";
+// const API_URL = "http://localhost:5000";
 
 // export default function CompanyProfile() {
 //     const token = localStorage.getItem("token");
@@ -559,7 +559,7 @@
 //     };
 
 //     useEffect(() => {
-//         apiCall(`${BACKEND_URL}/api/company`, "GET").then((data) => {
+//         apiCall(`${API_URL}/api/company`, "GET").then((data) => {
 //             if (data.company) setCompany(data.company);
 //             setTechList((data.tech_stack || []).map((t) => t.technology));
 //             setRoles(data.roles || []);
@@ -567,7 +567,7 @@
 //     }, []);
 
 //     const saveCompany = async () => {
-//         const res = await apiCall(`${BACKEND_URL}/api/company`, "PUT", company);
+//         const res = await apiCall(`${API_URL}/api/company`, "PUT", company);
 //         if (res.company) {
 //             toast.success("Company profile saved");
 //             setCompany(res.company);
@@ -578,7 +578,7 @@
 
 //     const addTech = async () => {
 //         if (!techInput.trim()) return;
-//         const res = await apiCall(`${BACKEND_URL}/api/company/tech`, "POST", {
+//         const res = await apiCall(`${API_URL}/api/company/tech`, "POST", {
 //             technology: techInput,
 //         });
 //         if (res.message) {
@@ -590,7 +590,7 @@
 
 //     const addRole = async () => {
 //         if (!roleForm.role_name.trim()) return;
-//         const res = await apiCall(`${BACKEND_URL}/api/company/roles`, "POST", roleForm);
+//         const res = await apiCall(`${API_URL}/api/company/roles`, "POST", roleForm);
 //         if (res.message) {
 //             setRoles((prev) => [...prev, roleForm]);
 //             setRoleForm({ role_name: "", experience_level: "", salary_range: "" });
@@ -608,7 +608,7 @@
 //         if (bannerFile) formData.append("bannerImage", bannerFile);
 
 //         const res = await apiCall(
-//             `${BACKEND_URL}/api/company/media`,
+//             `${API_URL}/api/company/media`,
 //             "PATCH",
 //             formData,
 //             true
@@ -624,7 +624,7 @@
 
 //     const bannerStyle = company.banner_url
 //         ? {
-//             backgroundImage: `url(${BACKEND_URL}${company.banner_url})`,
+//             backgroundImage: `url(${API_URL}${company.banner_url})`,
 //             backgroundSize: "cover",
 //             backgroundPosition: "center",
 //         }
@@ -640,7 +640,7 @@
 //                     <div className="w-28 h-28 rounded-full bg-white shadow-lg overflow-hidden ring-4 ring-white">
 //                         {company.logo_url ? (
 //                             <img
-//                                 src={`${BACKEND_URL}${company.logo_url}`}
+//                                 src={`${API_URL}${company.logo_url}`}
 //                                 alt="Company Logo"
 //                                 className="w-full h-full object-cover"
 //                             />
@@ -824,7 +824,8 @@ import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import { toast } from "sonner";
 
-const BACKEND_URL = "http://localhost:5000";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function CompanyProfile() {
     const token = localStorage.getItem("token");
@@ -875,7 +876,7 @@ export default function CompanyProfile() {
     };
 
     useEffect(() => {
-        apiCall(`${BACKEND_URL}/api/company`, "GET").then((data) => {
+        apiCall(`${API_URL}/api/company`, "GET").then((data) => {
             if (data.company) setCompany(data.company);
             setTechList((data.tech_stack || []).map((t) => t.technology));
             setRoles(data.roles || []);
@@ -883,13 +884,13 @@ export default function CompanyProfile() {
     }, []);
 
     const saveCompany = async () => {
-        const res = await apiCall(`${BACKEND_URL}/api/company`, "PUT", company);
+        const res = await apiCall(`${API_URL}/api/company`, "PUT", company);
         if (res.company) toast.success("Profile saved");
     };
 
     const addTech = async () => {
         if (!techInput.trim()) return;
-        await apiCall(`${BACKEND_URL}/api/company/tech`, "POST", {
+        await apiCall(`${API_URL}/api/company/tech`, "POST", {
             technology: techInput,
         });
         setTechList((p) => [...p, techInput]);
@@ -898,7 +899,7 @@ export default function CompanyProfile() {
 
     const addRole = async () => {
         if (!roleForm.role_name.trim()) return;
-        await apiCall(`${BACKEND_URL}/api/company/roles`, "POST", roleForm);
+        await apiCall(`${API_URL}/api/company/roles`, "POST", roleForm);
         setRoles((p) => [...p, roleForm]);
         setRoleForm({ role_name: "", experience_level: "", salary_range: "" });
     };
@@ -909,7 +910,7 @@ export default function CompanyProfile() {
         if (bannerFile) formData.append("bannerImage", bannerFile);
 
         const res = await apiCall(
-            `${BACKEND_URL}/api/company/media`,
+            `${API_URL}/api/company/media`,
             "PATCH",
             formData,
             true
@@ -926,7 +927,7 @@ export default function CompanyProfile() {
                     className="h-52 md:h-64 bg-cover bg-center"
                     style={{
                         backgroundImage: company.banner_url
-                            ? `url(${BACKEND_URL}${company.banner_url})`
+                            ? `url(${API_URL}${company.banner_url})`
                             : undefined,
                     }}
                 />
@@ -934,7 +935,7 @@ export default function CompanyProfile() {
                     <div className="w-28 h-28 rounded-full bg-white shadow overflow-hidden ring-4 ring-white">
                         {company.logo_url && (
                             <img
-                                src={`${BACKEND_URL}${company.logo_url}`}
+                                src={`${API_URL}${company.logo_url}`}
                                 className="w-full h-full object-cover"
                             />
                         )}

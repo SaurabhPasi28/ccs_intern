@@ -81,8 +81,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+const API_URL = import.meta.env.VITE_API_URL;
 
-const API_URL = "http://localhost:5000/api";
+// const API_URL = "http://localhost:5000/api";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -96,7 +97,7 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/auth/forgot-password`, { email });
+      await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
       toast.success("Reset link sent to your email 📩");
       setEmail("");
     } catch (err) {

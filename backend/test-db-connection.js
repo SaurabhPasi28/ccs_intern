@@ -11,6 +11,7 @@ console.log('  Host:', process.env.DB_HOST);
 console.log('  User:', process.env.DB_USER);
 console.log('  Database:', process.env.DB_NAME);
 console.log('  Port:', process.env.DB_PORT);
+console.log('  Port:', process.env.DATABASE_URL);
 console.log('\n⏳ Connecting...\n');
 
 // Test 1: Basic connection

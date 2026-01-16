@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const API_URL = "http://localhost:5000/api";
+// const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function ResetPassword() {
   const { token } = useParams();
@@ -32,7 +33,7 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/auth/reset-password/${token}`, { password });
+      await axios.post(`${API_URL}/api/auth/reset-password/${token}`, { password });
       toast.success("Password reset successfully 🔐");
       navigate("/login");
     } catch (err) {

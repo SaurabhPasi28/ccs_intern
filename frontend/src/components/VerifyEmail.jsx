@@ -5,7 +5,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
-const API_URL = "http://localhost:5000/api";
+// const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function VerifyEmail() {
   const { token } = useParams();
@@ -19,7 +20,7 @@ export default function VerifyEmail() {
 
     const verifyEmail = async () => {
       try {
-        const res = await axios.get(`${API_URL}/auth/verify/${token}`);
+        const res = await axios.get(`${API_URL}/api/auth/verify/${token}`);
         toast.success(res.data.message || "Email verified successfully");
         localStorage.setItem("email_verified", "true");
         setStatus("Email verified successfully! Redirecting to login...");

@@ -27,6 +27,7 @@ export default function SchoolPublicProfile() {
     const [placements, setPlacements] = useState([]);
     const [rankings, setRankings] = useState([]);
     const [error, setError] = useState(null);
+    const API_URL = import.meta.env.VITE_API_URL;
 
     // useEffect(() => {
     //     fetchCollegeProfile();
@@ -35,7 +36,7 @@ export default function SchoolPublicProfile() {
     // const fetchCollegeProfile = async () => {
     //     try {
     //         setLoading(true);
-    //         const response = await fetch(`http://localhost:5000/api/college/public/${id}`);
+    //         const response = await fetch(`${API_URL}/api/college/public/${id}`);
     //         const data = await response.json();
 
     //         if (response.ok) {
@@ -188,7 +189,7 @@ export default function SchoolPublicProfile() {
                 {college.banner_url ? (
                     <div className="w-full h-72 bg-black">
                         <img
-                            src={`http://localhost:5000${college.banner_url}`}
+                            src={`${API_URL}${college.banner_url}`}
                             alt={college.name}
                             className="w-full h-full object-cover"
                         />
@@ -200,7 +201,7 @@ export default function SchoolPublicProfile() {
                 <div className="absolute -bottom-16 left-10 transform hover:scale-105 transition-transform duration-300 ease-in-out">
                     {college.logo_url ? (
                         <img
-                            src={`http://localhost:5000${college.logo_url}`}
+                            src={`${API_URL}${college.logo_url}`}
                             alt={college.name}
                             className="w-48 h-48 rounded-full border-4 border-white shadow-lg bg-white object-cover"
                         />
