@@ -380,3 +380,69 @@ exports.clearMedia = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
+/* =============================
+   GET PUBLIC PROFILE (BY USER ID)
+============================= */
+exports.getPublicProfile = async (req, res) => {
+    try {
+        const { id } = req.params; // user_id (UUID)
+
+        // Get user basic info
+        const userResult = await pool.query(
+            "SELECT id, name, email FROM users WHERE id = $1",
+            [id]
+        );
+
+        if (!userResult.rows.length) {
+            return res.status(404).json({ message: "Profile not found" });
+        }
+
+        const user = userResult.rows[0];
+
+        // Get profile details
+        const profileResult = await pool.query(
+            "SELECT * FROM profiles WHERE user_id = $1",
+            [id]
+        );
+
+        const educationResult = await pool.query(
+            "SELECT * FROM education WHERE user_id = $1 ORDER BY start_year DESC",
+            [id]
+        );
+
+        const experienceResult = await pool.query(
+            "SELECT * FROM experience WHERE user_id = $1 ORDER BY start_date DESC",
+            [id]
+        );
+
+        const skillsResult = await pool.query(
+            `SELECT s.id, s.skill_name
+             FROM skills s
+             JOIN user_skills us ON s.id = us.skill_id
+             WHERE us.user_id = $1`,
+            [id]
+        );
+
+        const certificationsResult = await pool.query(
+            "SELECT * FROM certifications WHERE user_id = $1 ORDER BY issue_date DESC",
+            [id]
+        );
+
+        res.json({
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email
+            },
+            profile: profileResult.rows[0] || null,
+            education: educationResult.rows,
+            experience: experienceResult.rows,
+            skills: skillsResult.rows,
+            certifications: certificationsResult.rows,
+        });
+    } catch (err) {
+        console.error("GET PUBLIC PROFILE ERROR:", err.message);
+        res.status(500).json({ message: "Server error" });
+    }
+};

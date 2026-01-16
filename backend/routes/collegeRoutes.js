@@ -16,7 +16,16 @@ const {
     deleteRanking,
     uploadMedia,
     clearMedia,
+    getPublicCollege, //sp-->
 } = collegeController;
+
+// public college profile added by me----------->sp
+
+
+/* =============================
+   PUBLIC ENDPOINTS (NO AUTH)
+============================= */
+router.get("/public/college", getPublicCollege); // Public college profile
 
 /* =============================
    APPLY AUTH MIDDLEWARE ONCE

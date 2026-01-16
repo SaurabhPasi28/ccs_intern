@@ -17,7 +17,13 @@ const {
     deleteCertification,
     uploadMedia,
     clearMedia,
+    getPublicProfile,
 } = profileController;
+
+/* =============================
+   PUBLIC ENDPOINTS (NO AUTH)
+============================= */
+router.get("/public/:id", getPublicProfile); // Public profile
 
 /* =============================
    APPLY AUTH MIDDLEWARE ONCE

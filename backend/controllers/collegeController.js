@@ -448,3 +448,59 @@ exports.deleteRanking = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
+
+// these bellow lines added by me--------->
+
+
+
+// ==============================
+// GET PUBLIC COLLEGE PROFILE
+// ==============================
+exports.getPublicCollege = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const collegeResult = await pool.query(
+            "SELECT * FROM colleges WHERE id = $1",
+            [id]
+        );
+
+        if (!collegeResult.rows.length) {
+            return res.status(404).json({ message: "College not found" });
+        }
+
+        const college = collegeResult.rows[0];
+
+        const programs = await pool.query(
+            "SELECT * FROM college_programs WHERE college_id = $1 ORDER BY degree_level, program_name",
+            [college.id]
+        );
+
+        const facilities = await pool.query(
+            "SELECT * FROM college_facilities WHERE college_id = $1 ORDER BY facility_name",
+            [college.id]
+        );
+
+        const placements = await pool.query(
+            "SELECT * FROM college_placements WHERE college_id = $1 ORDER BY academic_year DESC",
+            [college.id]
+        );
+
+        const rankings = await pool.query(
+            "SELECT * FROM college_rankings WHERE college_id = $1 ORDER BY year DESC NULLS LAST",
+            [college.id]
+        );
+
+        res.json({
+            college,
+            programs: programs.rows,
+            facilities: facilities.rows,
+            placements: placements.rows,
+            rankings: rankings.rows
+        });
+    } catch (err) {
+        console.error("GET PUBLIC COLLEGE ERROR:", err.message);
+        res.status(500).json({ message: "Server error" });
+    }
+};

@@ -153,7 +153,7 @@ export default function CompanyPublicProfile() {
                     <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-300 to-transparent mb-2" />
 
                     {/* Contact Actions */}
-                    <div className="flex flex-wrap gap-4">
+                    <div className="block lg:hidden flex flex-wrap gap-4">
                         {company.website_url && (
                             <a
                                 href={company.website_url}
@@ -226,7 +226,7 @@ export default function CompanyPublicProfile() {
                     <div className="lg:col-span-2 space-y-6">
                         {/* About Section */}
                         {company.description && (
-                            <Card className="border-2 border-gray-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
+                            <Card className="border-2 border-blue-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                                         About {company.name}
@@ -241,7 +241,7 @@ export default function CompanyPublicProfile() {
 
                         {/* Tech Stack */}
                         {techStack.length > 0 && (
-                            <Card className="border-2 border-gray-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
+                            <Card className="border-2 border-blue-100 shadow-md shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-2xl font-bold text-gray-900">Tech Stack</CardTitle>
                                     <div className="h-1 w-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mt-2"></div>
@@ -260,11 +260,11 @@ export default function CompanyPublicProfile() {
 
                         {/* Open Positions */}
                         {roles.length > 0 && (
-                            <Card className="border-2 border-gray-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
+                            <Card className="border-2 border-blue-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                                         <Briefcase size={24} className="text-blue-600" />
-                                        Open Positions ({roles.length})
+                                        Current Openings ({roles.length})
                                     </CardTitle>
                                     <div className="h-1 w-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mt-2"></div>
                                 </CardHeader>
@@ -300,8 +300,149 @@ export default function CompanyPublicProfile() {
 
                     {/* Right Column - Location Info */}
                     <div className="space-y-6">
+                        {/* Contact Information Card */}
+                        <Card className=" hidden lg:block border border-gray-200 shadow-lg hover:shadow-2xl 
+                                        transition-all duration-300 bg-white rounded-2xl">
+
+                            <CardContent className=" grid grid-cols-2 gap-4 p-5">
+                            {/* <CardContent className="flex gap-4 p-5"> */}
+
+
+                                {company.hr_email && (
+                                    <a
+                                        href={`mailto:${company.hr_email}`}
+                                        className="group flex items-center justify-center
+                                                h-14 rounded-xl border border-gray-200
+                                                bg-gradient-to-br from-white to-blue-50
+                                                hover:from-blue-600 hover:to-indigo-600
+                                                transition-all duration-300 hover:scale-[1.05]
+                                                hover:shadow-lg"
+                                        title="Email"
+                                    >
+                                        <Mail
+                                            size={22}
+                                            className="text-blue-600 group-hover:text-white transition"
+                                        />
+                                    </a>
+                                )}
+
+                                {company.phone && (
+                                    <a
+                                        href={`tel:${company.phone}`}
+                                        className="group flex items-center justify-center
+                                                h-14 rounded-xl border border-gray-200
+                                                bg-gradient-to-br from-white to-green-50
+                                                hover:from-green-600 hover:to-emerald-600
+                                                transition-all duration-300 hover:scale-[1.05]
+                                                hover:shadow-lg"
+                                        title="Call"
+                                    >
+                                        <Phone
+                                            size={22}
+                                            className="text-green-600 group-hover:text-white transition"
+                                        />
+                                    </a>
+                                )}
+
+                                {company.linkedin_url && (
+                                    <a
+                                        href={company.linkedin_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="group flex items-center justify-center
+                                                h-14 rounded-xl border border-gray-200
+                                                bg-gradient-to-br from-white to-sky-50
+                                                hover:from-sky-600 hover:to-blue-700
+                                                transition-all duration-300 hover:scale-[1.05]
+                                                hover:shadow-lg"
+                                        title="LinkedIn"
+                                    >
+                                        <Linkedin
+                                            size={22}
+                                            className="text-sky-600 group-hover:text-white transition"
+                                        />
+                                    </a>
+                                )}
+
+                                {company.website_url && (
+                                    <a
+                                        href={company.website_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="group flex items-center justify-center
+                                                h-14 rounded-xl border border-gray-200
+                                                bg-gradient-to-br from-white to-purple-50
+                                                hover:from-purple-600 hover:to-indigo-700
+                                                transition-all duration-300 hover:scale-[1.05]
+                                                hover:shadow-lg"
+                                        title="Website"
+                                    >
+                                        <Globe
+                                            size={22}
+                                            className="text-purple-600 group-hover:text-white transition"
+                                        />
+                                    </a>
+                                )}
+
+                            </CardContent>
+                        </Card>
+
+
+
+                        <Card className="border-2 border-blue-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-gradient-to-br from-white to-blue-50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="flex font-bold text-xl items-center gap-2 text-gray-900">
+                                    <Mail size={22} className="text-blue-600" />
+                                    Contact Information
+                                </CardTitle>
+                                <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mt-2"></div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                {company.hr_email && (
+                                    <a
+                                        href={`mailto:${company.hr_email}`}
+                                        className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-blue-50 transition-colors border border-gray-100"
+                                    >
+                                        <Mail size={18} className="text-blue-600" />
+                                        <span className="text-sm text-gray-700 font-medium">{company.hr_email}</span>
+                                    </a>
+                                )}
+                                {company.phone && (
+                                    <a
+                                        href={`tel:${company.phone}`}
+                                        className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-blue-50 transition-colors border border-gray-100"
+                                    >
+                                        <Phone size={18} className="text-blue-600" />
+                                        <span className="text-sm text-gray-700 font-medium">{company.phone}</span>
+                                    </a>
+                                )}
+                                {company.linkedin_url && (
+                                    <a
+                                        href={company.linkedin_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-blue-50 transition-colors border border-gray-100"
+                                    >
+                                        <Linkedin size={18} className="text-blue-600" />
+                                        <span className="text-sm text-gray-700 font-medium">LinkedIn Profile</span>
+                                    </a>
+                                )}
+                                {company.website_url && (
+                                    <a
+                                        href={company.website_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-blue-50 transition-colors border border-gray-100"
+                                    >
+                                        <Globe size={18} className="text-blue-600" />
+                                        <span className="text-sm text-gray-700 font-medium">Visit Website</span>
+                                    </a>
+                                )}
+                            </CardContent>
+                        </Card>
+
                         {/* Headquarters */}
-                        <Card className="border-2 border-gray-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
+                        <Card className="border-2 border-blue-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
                             <CardHeader className="pb-3">
                                 <CardTitle className="flex font-bold text-xl items-center gap-2 text-gray-900">
                                     <MapPin size={22} className="text-blue-600" />
@@ -327,7 +468,7 @@ export default function CompanyPublicProfile() {
 
                         {/* Additional Locations */}
                         {locations.length > 0 && (
-                            <Card className="border-2 border-gray-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
+                            <Card className="border-2 border-blue-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="flex items-center gap-2 font-bold text-xl text-gray-900">
                                         <MapPinned size={22} className="text-blue-600" />
@@ -353,7 +494,7 @@ export default function CompanyPublicProfile() {
                         )}
 
                         {/* Quick Stats */}
-                        <Card className="border-2 border-gray-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
+                        <Card className="border-2 border-blue-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
                             <CardHeader className="pb-3">
                                 <CardTitle className="font-bold text-xl text-gray-900">Company Info</CardTitle>
                                 <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mt-2"></div>
