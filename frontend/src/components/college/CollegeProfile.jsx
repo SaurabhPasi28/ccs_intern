@@ -15,21 +15,11 @@ const COLLEGE_TYPES = [
     "Management Institute",
 ];
 
-const DEGREE_LEVELS = ["UG", "PG", "Diploma", "PhD"];
-
-const FACILITY_OPTIONS = [
-    "Hostel",
-    "Library",
-    "Labs",
-    "Sports",
-    "Medical",
-    "Cafeteria",
-    "Wi-Fi",
-    "Placement Cell",
-    "Incubation/Research",
-    "Transport",
-    "Auditorium",
-    "Other",
+const DEGREE_LEVELS = [
+    "B.Tech", "M.Tech", "B.E.", "M.E.", "BSc", "MSc", "BCA", "MCA",
+    "BA", "MA", "BBA", "MBA", "B.Com", "M.Com", "LLB", "LLM",
+    "MBBS", "MD", "BDS", "MDS", "B.Pharm", "M.Pharm", "PhD",
+    "Diploma", "Other"
 ];
 
 export default function CollegeProfile() {
@@ -38,7 +28,6 @@ export default function CollegeProfile() {
     const [college, setCollege] = useState({
         name: "",
         established_year: "",
-        college_type: "",
         accreditation: "",
         state: "",
         city: "",
@@ -49,22 +38,19 @@ export default function CollegeProfile() {
         website_url: "",
         logo_url: "",
         banner_url: "",
+        hod_name: "",
+        hod_email: "",
+        hod_phone: "",
+        hod_designation: "",
     });
 
-    const [programs, setPrograms] = useState([]);
-    const [facilities, setFacilities] = useState([]);
+    const [degrees, setDegrees] = useState([]);
     const [placements, setPlacements] = useState([]);
     const [rankings, setRankings] = useState([]);
 
-    const [programForm, setProgramForm] = useState({
-        degree_level: "",
-        program_name: "",
-        specialization: "",
-        duration_years: "",
-        annual_fees: "",
-        total_seats: "",
-    });
-    const [facilityForm, setFacilityForm] = useState({ facility_name: "" });
+    const [degreeForm, setDegreeForm] = useState({ degree_name: "" });
+    const [customDegreeMode, setCustomDegreeMode] = useState(false);
+    const [showDegreeForm, setShowDegreeForm] = useState(false);
     const [placementForm, setPlacementForm] = useState({
         academic_year: "",
         placement_percent: "",
@@ -84,9 +70,15 @@ export default function CollegeProfile() {
     const [logoFile, setLogoFile] = useState(null);
     const [bannerFile, setBannerFile] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showMediaPopup, setShowMediaPopup] = useState(false);
+    const [dragActive, setDragActive] = useState({ logo: false, banner: false });
+    
+    const [qrCode, setQrCode] = useState(null);
+    const [qrLoading, setQrLoading] = useState(false);
 
     useEffect(() => {
         fetchCollege();
+        fetchQRCode();
     }, []);
 
     const apiCall = async (url, method, body, isFormData = false) => {
@@ -113,7 +105,6 @@ export default function CollegeProfile() {
                 setCollege({
                     name: c.name || "",
                     established_year: c.established_year || "",
-                    college_type: c.college_type || "",
                     accreditation: c.accreditation || "",
                     state: c.state || "",
                     city: c.city || "",
@@ -124,9 +115,12 @@ export default function CollegeProfile() {
                     website_url: c.website_url || "",
                     logo_url: c.logo_url || "",
                     banner_url: c.banner_url || "",
+                    hod_name: c.hod_name || "",
+                    hod_email: c.hod_email || "",
+                    hod_phone: c.hod_phone || "",
+                    hod_designation: c.hod_designation || "",
                 });
-                setPrograms(data.programs || []);
-                setFacilities(data.facilities || []);
+                setDegrees(data.degrees || []);
                 setPlacements(data.placements || []);
                 setRankings(data.rankings || []);
             } else {
@@ -135,6 +129,29 @@ export default function CollegeProfile() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchQRCode = async () => {
+        setQrLoading(true);
+        try {
+            const { ok, data } = await apiCall(`${API_URL}/api/college/qrcode`, "GET");
+            if (ok) {
+                setQrCode(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch QR code:", err);
+        } finally {
+            setQrLoading(false);
+        }
+    };
+
+    const downloadQRCode = () => {
+        if (!qrCode?.qrCode) return;
+        const link = document.createElement('a');
+        link.href = qrCode.qrCode;
+        link.download = `${qrCode.collegeName || 'college'}_referral_qr.png`;
+        link.click();
+        toast.success("QR Code downloaded!");
     };
 
     const saveCollege = async () => {
@@ -147,38 +164,30 @@ export default function CollegeProfile() {
         }
     };
 
-    const saveProgram = async (e) => {
-        e.preventDefault();
-        const { ok } = await apiCall(`${API_URL}/api/college/programs`, "POST", programForm);
-        if (ok) {
-            toast.success("Program added");
-            setProgramForm({ degree_level: "", program_name: "", specialization: "", duration_years: "", annual_fees: "", total_seats: "" });
-            fetchCollege();
+    const handleDegreeSelect = (value) => {
+        if (value === "Other") {
+            setCustomDegreeMode(true);
+            setDegreeForm({ degree_name: "" });
         } else {
-            toast.error("Failed to add program");
+            setCustomDegreeMode(false);
+            setDegreeForm({ degree_name: value });
         }
     };
 
-    const deleteProgram = async (id) => {
-        const { ok } = await apiCall(`${API_URL}/api/college/programs/${id}`, "DELETE");
-        if (ok) {
-            toast.success("Program deleted");
-            fetchCollege();
-        }
-    };
-
-    const addFacility = async (e) => {
+    const addDegree = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall(`${API_URL}/api/college/facilities`, "POST", facilityForm);
+        const { ok } = await apiCall(`${API_URL}/api/college/degrees`, "POST", degreeForm);
         if (ok) {
-            toast.success("Facility added");
-            setFacilityForm({ facility_name: "" });
+            toast.success("Degree added");
+            setShowDegreeForm(false);
+            setDegreeForm({ degree_name: "" });
+            setCustomDegreeMode(false);
             fetchCollege();
-        } else toast.error("Failed to add facility");
+        } else toast.error("Failed to add degree");
     };
 
-    const deleteFacility = async (id) => {
-        const { ok } = await apiCall(`${API_URL}/api/college/facilities/${id}`, "DELETE");
+    const deleteDegree = async (degree_id) => {
+        const { ok } = await apiCall(`${API_URL}/api/college/degrees/${degree_id}`, "DELETE");
         if (ok) { toast.success("Deleted"); fetchCollege(); }
     };
 
@@ -212,6 +221,29 @@ export default function CollegeProfile() {
         if (ok) { toast.success("Deleted"); fetchCollege(); }
     };
 
+    const handleDrag = (e, type) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") {
+            setDragActive({ ...dragActive, [type]: true });
+        } else if (e.type === "dragleave") {
+            setDragActive({ ...dragActive, [type]: false });
+        }
+    };
+
+    const handleDrop = (e, type) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive({ ...dragActive, [type]: false });
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            if (type === "logo") {
+                setLogoFile(e.dataTransfer.files[0]);
+            } else {
+                setBannerFile(e.dataTransfer.files[0]);
+            }
+        }
+    };
+
     const uploadMedia = async (e) => {
         e.preventDefault();
         if (!logoFile && !bannerFile) return toast.error("Select a logo or banner first");
@@ -224,6 +256,7 @@ export default function CollegeProfile() {
             setCollege((prev) => ({ ...prev, logo_url: data.logo_url || prev.logo_url, banner_url: data.banner_url || prev.banner_url }));
             setLogoFile(null);
             setBannerFile(null);
+            setShowMediaPopup(false);
         } else {
             toast.error(data?.message || "Upload failed");
         }
@@ -245,11 +278,102 @@ export default function CollegeProfile() {
 
     return (
         <div className="min-h-screen bg-gray-200">
+            {/* Media Upload Popup */}
+            {showMediaPopup && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowMediaPopup(false)}>
+                    <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold">Upload Images</h2>
+                            <button onClick={() => setShowMediaPopup(false)} className="text-gray-500 hover:text-gray-700">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            {/* Logo Drop Zone */}
+                            <div>
+                                <Label>College Logo</Label>
+                                <div
+                                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                                        dragActive.logo ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
+                                    }`}
+                                    onDragEnter={(e) => handleDrag(e, "logo")}
+                                    onDragLeave={(e) => handleDrag(e, "logo")}
+                                    onDragOver={(e) => handleDrag(e, "logo")}
+                                    onDrop={(e) => handleDrop(e, "logo")}
+                                    onClick={() => document.getElementById("logoInput").click()}
+                                >
+                                    {logoFile ? (
+                                        <div>
+                                            <p className="text-sm text-gray-600">Selected: {logoFile.name}</p>
+                                            <button onClick={(e) => { e.stopPropagation(); setLogoFile(null); }} className="text-red-500 text-sm mt-2">Remove</button>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                            <p className="mt-2 text-sm text-gray-600">Drag and drop logo here, or click to select</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <input id="logoInput" type="file" accept="image/*" className="hidden" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
+                            </div>
+                            {/* Banner Drop Zone */}
+                            <div>
+                                <Label>College Banner</Label>
+                                <div
+                                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                                        dragActive.banner ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
+                                    }`}
+                                    onDragEnter={(e) => handleDrag(e, "banner")}
+                                    onDragLeave={(e) => handleDrag(e, "banner")}
+                                    onDragOver={(e) => handleDrag(e, "banner")}
+                                    onDrop={(e) => handleDrop(e, "banner")}
+                                    onClick={() => document.getElementById("bannerInput").click()}
+                                >
+                                    {bannerFile ? (
+                                        <div>
+                                            <p className="text-sm text-gray-600">Selected: {bannerFile.name}</p>
+                                            <button onClick={(e) => { e.stopPropagation(); setBannerFile(null); }} className="text-red-500 text-sm mt-2">Remove</button>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                            <p className="mt-2 text-sm text-gray-600">Drag and drop banner here, or click to select</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <input id="bannerInput" type="file" accept="image/*" className="hidden" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} />
+                            </div>
+                            <div className="flex gap-3 justify-end">
+                                <Button onClick={() => setShowMediaPopup(false)} variant="outline">Cancel</Button>
+                                <Button onClick={uploadMedia} disabled={!logoFile && !bannerFile}>Upload</Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             <div className="max-w-7xl mx-auto px-6 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 space-y-6">
                         {/* Hero header */}
                         <div className="rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 bg-white relative">
+                            {/* Edit Icon */}
+                            <div className="absolute top-4 right-4 z-10">
+                                <button
+                                    onClick={() => setShowMediaPopup(true)}
+                                    className="bg-white hover:bg-gray-100 p-2 rounded-full shadow-lg transition"
+                                >
+                                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                </button>
+                            </div>
                             <div className="h-32 md:h-36 bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700" style={bannerStyle} />
                             <div className="px-6 pb-6 flex flex-wrap items-end gap-4 -mt-12">
                                 <div className="w-20 h-20 rounded-full bg-white shadow flex items-center justify-center ring-4 ring-white overflow-hidden">
@@ -266,14 +390,11 @@ export default function CollegeProfile() {
                                     </p>
                                 </div>
                             </div>
-                            <div className="px-6 pb-4 flex gap-3">
-                                <input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} />
-                                <input type="file" accept="image/*" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} />
-                                <Button onClick={uploadMedia} variant="secondary">Upload</Button>
-                                {(college.logo_url || college.banner_url) && (
-                                    <Button onClick={clearMedia} variant="destructive">Clear</Button>
-                                )}
-                            </div>
+                            {(college.logo_url || college.banner_url) && (
+                                <div className="px-6 pb-4">
+                                    <Button onClick={clearMedia} variant="destructive" size="sm">Clear Images</Button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Basic Info */}
@@ -288,21 +409,8 @@ export default function CollegeProfile() {
                                         <Input value={college.name} onChange={(e) => setCollege({ ...college, name: e.target.value })} />
                                     </div>
                                     <div>
-                                        <Label>College Type</Label>
-                                        <select value={college.college_type} onChange={(e) => setCollege({ ...college, college_type: e.target.value })} className="w-full border rounded-md p-2">
-                                            <option value="">Select type</option>
-                                            {COLLEGE_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
                                         <Label>Established Year</Label>
                                         <Input type="number" value={college.established_year} onChange={(e) => setCollege({ ...college, established_year: e.target.value })} />
-                                    </div>
-                                    <div>
-                                        <Label>Accreditation / Affiliation</Label>
-                                        <Input value={college.accreditation} onChange={(e) => setCollege({ ...college, accreditation: e.target.value })} placeholder="e.g., NAAC A+, UGC, AICTE" />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -351,89 +459,51 @@ export default function CollegeProfile() {
                             </CardContent>
                         </Card>
 
-                        {/* Programs */}
+                        {/* Degrees Offered */}
                         <Card className="shadow-md hover:shadow-xl transition-all duration-300 border-0">
                             <CardHeader>
-                                <CardTitle>Programs Offered</CardTitle>
+                                <div className="flex justify-between items-center">
+                                    <CardTitle>Degrees Offered</CardTitle>
+                                    <Button onClick={() => setShowDegreeForm(!showDegreeForm)} size="sm">
+                                        {showDegreeForm ? "Cancel" : "+ Add Degree"}
+                                    </Button>
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <form onSubmit={saveProgram} className="space-y-3 border p-4 rounded">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div>
-                                            <Label>Degree Level</Label>
-                                            <select value={programForm.degree_level} onChange={(e) => setProgramForm({ ...programForm, degree_level: e.target.value })} className="w-full border rounded-md p-2">
-                                                <option value="">Select</option>
-                                                {DEGREE_LEVELS.map((lvl) => <option key={lvl} value={lvl}>{lvl}</option>)}
+                                {showDegreeForm && (
+                                    <form onSubmit={addDegree} className="space-y-3">
+                                        <div className="flex flex-col md:flex-row gap-2">
+                                            <select
+                                                value={customDegreeMode ? "Other" : degreeForm.degree_name}
+                                                onChange={(e) => handleDegreeSelect(e.target.value)}
+                                                className="w-full border rounded-md p-2"
+                                                required={!customDegreeMode}
+                                            >
+                                                <option value="">Select degree</option>
+                                                {DEGREE_LEVELS.map((degree) => (
+                                                    <option key={degree} value={degree}>{degree}</option>
+                                                ))}
                                             </select>
+                                            {customDegreeMode && (
+                                                <Input
+                                                    required
+                                                    value={degreeForm.degree_name}
+                                                    onChange={(e) => setDegreeForm({ degree_name: e.target.value })}
+                                                    placeholder="Enter degree name"
+                                                />
+                                            )}
                                         </div>
-                                        <div>
-                                            <Label>Program Name</Label>
-                                            <Input required value={programForm.program_name} onChange={(e) => setProgramForm({ ...programForm, program_name: e.target.value })} placeholder="e.g., B.Tech" />
-                                        </div>
-                                        <div>
-                                            <Label>Specialization</Label>
-                                            <Input value={programForm.specialization} onChange={(e) => setProgramForm({ ...programForm, specialization: e.target.value })} placeholder="e.g., CSE" />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div>
-                                            <Label>Duration (years)</Label>
-                                            <Input type="number" value={programForm.duration_years} onChange={(e) => setProgramForm({ ...programForm, duration_years: e.target.value })} />
-                                        </div>
-                                        <div>
-                                            <Label>Annual Fees</Label>
-                                            <Input type="number" value={programForm.annual_fees} onChange={(e) => setProgramForm({ ...programForm, annual_fees: e.target.value })} />
-                                        </div>
-                                        <div>
-                                            <Label>Total Seats</Label>
-                                            <Input type="number" value={programForm.total_seats} onChange={(e) => setProgramForm({ ...programForm, total_seats: e.target.value })} />
-                                        </div>
-                                    </div>
-                                    <Button type="submit">Save Program</Button>
-                                </form>
-
-                                {programs.map((p) => (
-                                    <div key={p.id} className="border p-4 rounded flex justify-between items-start">
-                                        <div>
-                                            <h3 className="font-semibold">{p.program_name}</h3>
-                                            <p className="text-sm text-gray-600">{p.specialization}</p>
-                                            <p className="text-xs text-gray-500">{p.degree_level} • {p.duration_years ? `${p.duration_years} yrs` : ""}</p>
-                                            <p className="text-xs text-gray-500">Fees: {p.annual_fees || "-"} | Seats: {p.total_seats || "-"}</p>
-                                        </div>
-                                        <Button variant="destructive" size="sm" onClick={() => deleteProgram(p.id)}>Delete</Button>
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
-
-                        {/* Facilities */}
-                        <Card className="shadow-md hover:shadow-xl transition-all duration-300 border-0">
-                            <CardHeader>
-                                <CardTitle>Facilities</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <form onSubmit={addFacility} className="space-y-3">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label>Select Facility</Label>
-                                            <select value={facilityForm.facility_name} onChange={(e) => setFacilityForm({ facility_name: e.target.value })} className="w-full border rounded-md p-2" required>
-                                                <option value="">Choose</option>
-                                                {FACILITY_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <Label>Or add custom</Label>
-                                            <Input value={facilityForm.facility_name} onChange={(e) => setFacilityForm({ facility_name: e.target.value })} placeholder="Custom facility" />
-                                        </div>
-                                    </div>
-                                    <Button type="submit">Add Facility</Button>
-                                </form>
+                                        <Button type="submit">Save</Button>
+                                    </form>
+                                )}
 
                                 <div className="flex flex-wrap gap-2">
-                                    {facilities.map((f) => (
-                                        <div key={f.id} className="bg-gray-100 px-3 py-1 rounded-full flex items-center gap-2">
-                                            <span>{f.facility_name}</span>
-                                            <button onClick={() => deleteFacility(f.id)} className="text-red-500 hover:text-red-700">×</button>
+                                    {degrees.map((degree) => (
+                                        <div key={degree.id} className="bg-gray-100 px-3 py-1 rounded-full flex items-center gap-2">
+                                            <span>{degree.degree_name}</span>
+                                            <button onClick={() => deleteDegree(degree.id)} className="text-red-500 hover:text-red-700">
+                                                ×
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
@@ -543,14 +613,104 @@ export default function CollegeProfile() {
 
                     {/* Sidebar */}
                     <div className="space-y-6">
+                        {/* QR Code Card */}
+                        <Card className="shadow-md hover:shadow-xl transition-all duration-300 border-0">
+                            {/* <CardHeader>
+                                <CardTitle className="text-lg">Student Referral QR</CardTitle>
+                            </CardHeader> */}
+                            <CardContent className="space-y-3">
+                                {qrLoading ? (
+                                    <div className="flex justify-center py-8">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                    </div>
+                                ) : qrCode ? (
+                                    <div className="space-y-3">
+                                        <div className="bg-white p-3 rounded-lg border-2 border-gray-200 flex justify-center">
+                                            <img 
+                                                src={qrCode.qrCode} 
+                                                alt="Registration QR Code" 
+                                                className="w-full max-w-[200px]"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-gray-600 text-center">
+                                            Scan to register with your referral code
+                                        </p>
+                                        <div className="space-y-2">
+                                            <Button 
+                                                onClick={downloadQRCode} 
+                                                className="w-full" 
+                                                size="sm"
+                                            >
+                                                📥 Download QR Code
+                                            </Button>
+                                            <div className="bg-gray-50 p-2 rounded text-xs">
+                                                <p className="text-gray-500 mb-1">Referral Code:</p>
+                                                <p className="font-mono text-gray-800 break-all">{qrCode.referralCode}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-500 text-center py-4">
+                                        Complete your profile to generate QR code
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
+
                         <Card className="shadow-md hover:shadow-xl transition-all duration-300 border-0">
                             <CardHeader>
-                                <CardTitle className="text-lg">Contact</CardTitle>
+                                <CardTitle className="text-lg">College Contact</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-2 text-sm text-gray-700">
                                 <p><strong>Phone:</strong> {college.phone || "-"}</p>
                                 <p><strong>Email:</strong> {college.email || "-"}</p>
                                 <p className="break-all"><strong>Website:</strong> {college.website_url || "-"}</p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="shadow-md hover:shadow-xl transition-all duration-300 border-0">
+                            <CardHeader>
+                                <CardTitle className="text-lg">HOD Contact</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <div>
+                                    <Label className="text-xs">Name</Label>
+                                    <Input
+                                        value={college.hod_name}
+                                        onChange={(e) => setCollege({ ...college, hod_name: e.target.value })}
+                                        placeholder="HOD Name"
+                                        className="text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <Label className="text-xs">Designation</Label>
+                                    <Input
+                                        value={college.hod_designation}
+                                        onChange={(e) => setCollege({ ...college, hod_designation: e.target.value })}
+                                        placeholder="e.g., Head of Department"
+                                        className="text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <Label className="text-xs">Email</Label>
+                                    <Input
+                                        type="email"
+                                        value={college.hod_email}
+                                        onChange={(e) => setCollege({ ...college, hod_email: e.target.value })}
+                                        placeholder="hod@college.edu"
+                                        className="text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <Label className="text-xs">Phone</Label>
+                                    <Input
+                                        value={college.hod_phone}
+                                        onChange={(e) => setCollege({ ...college, hod_phone: e.target.value })}
+                                        placeholder="+91 XXXXX XXXXX"
+                                        className="text-sm"
+                                    />
+                                </div>
+                                <Button onClick={saveCollege} size="sm" className="w-full">Save HOD Details</Button>
                             </CardContent>
                         </Card>
                     </div>

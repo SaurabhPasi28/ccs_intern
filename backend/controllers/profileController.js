@@ -51,7 +51,7 @@ exports.getProfile = async (req, res) => {
             [userId]
         );
 
-        // 🔑 FIXED FOR NEW DS
+        // Fetch basic user info with newer schema (uses 'name' field)
         const userResult = await pool.query(
             "SELECT name AS full_name, email FROM users WHERE id = $1",
             [userId]
