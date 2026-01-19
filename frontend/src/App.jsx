@@ -74,6 +74,7 @@ import UniversityProfile from "./components/university/UniversityProfile";
 import CompanyProfile from "./components/company/CompanyProfile";
 import CompanyPublicProfile from "./components/company/CompanyPublicProfile";
 import StudentPublicProfile from "./components/student/StudentPublicProfile";
+import SchoolPublicProfile from "./components/school/SchoolPublicProfile";
 
 /* ---------------- Route Guards ---------------- */
 
@@ -126,6 +127,7 @@ function App() {
         {/* Public Company Profile - No Authentication Required */}
         <Route path="/company/:id" element={<CompanyPublicProfile />} />
         <Route path="/student/:id" element={<StudentPublicProfile />} />
+        <Route path="/school/check" element={<SchoolPublicProfile />} />
         {/* <Route path="/company/check" element={<CompanyPublicProfile />} /> */}
 
 

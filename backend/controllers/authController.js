@@ -6,6 +6,7 @@ const { sendVerificationEmail, sendResetPasswordEmail } = require("../utils/send
 
 
 exports.registerUser = async (req, res) => {
+    console.log("find")
     try {
         const { name, email, password, user_type, referral_code } = req.body;
 
