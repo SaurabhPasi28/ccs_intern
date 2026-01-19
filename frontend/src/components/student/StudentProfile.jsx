@@ -52,15 +52,12 @@ export default function StudentProfile() {
         fetchProfile();
     }, []);
 
-    console.log(token,"----------->");
-
     const fetchProfile = async () => {
         try {
             const res = await fetch(`${API_URL}/api/profile`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
-            console.log(data)
             if (res.ok) {
                 const p = data.profile || {};
                 setProfile({
