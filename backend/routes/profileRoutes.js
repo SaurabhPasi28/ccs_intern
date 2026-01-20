@@ -5,19 +5,23 @@ const authMiddleware = require("../middleware/authMiddleware");
 const profileController = require("../controllers/profileController");
 
 const {
-    getProfile,
-    updateProfile,
-    addEducation,
-    deleteEducation,
-    addExperience,
-    deleteExperience,
-    addSkill,
-    deleteSkill,
-    addCertification,
-    deleteCertification,
-    uploadMedia,
-    clearMedia,
-    getPublicProfile,
+   getProfile,
+   updateProfile,
+   addEducation,
+   deleteEducation,
+   addExperience,
+   deleteExperience,
+   addSkill,
+   deleteSkill,
+   addCertification,
+   deleteCertification,
+   uploadMedia,
+   clearMedia,
+   getPublicProfile,
+   getCompaniesWithJobs,
+   getStudentBasicInfo,
+   applyJob,
+   getAppliedJobs,
 } = profileController;
 
 /* =============================
@@ -67,5 +71,15 @@ router.delete("/skills/:skill_id", deleteSkill);
 ============================= */
 router.post("/certifications", addCertification);
 router.delete("/certifications/:id", deleteCertification);
+/* =============================
+   STUDENT – COMPANIES & JOBS
+============================= */
+router.get("/companies", getCompaniesWithJobs);
+router.get(
+   "/student/basic-info",
+   getStudentBasicInfo
+);
+router.post("/jobs/apply", applyJob);
+router.get("/jobs/applied", getAppliedJobs);
 
 module.exports = router;

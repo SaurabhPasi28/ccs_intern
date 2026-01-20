@@ -75,7 +75,14 @@ import CompanyProfile from "./components/company/CompanyProfile";
 import CompanyPublicProfile from "./components/company/CompanyPublicProfile";
 import StudentPublicProfile from "./components/student/StudentPublicProfile";
 import SchoolPublicProfile from "./components/school/SchoolPublicProfile";
-
+import CompanyPosts from "./components/company/CompanyPosts";
+import StudentJobs from "./components/student/Jobs";
+import ApplyJob from "./components/student/ApplyJob";
+import CompanyJobDetail from "./components/company/CompanyJobDetail";
+import PublicJobPage from "./components/publicJobPage";
+/* Admin Pages */
+import AdminDashboard from "./components/admin/adminDashboard";
+import UserListPage from "./components/admin/userTypePage";
 /* ---------------- Route Guards ---------------- */
 
 function PrivateRoute({ children }) {
@@ -186,6 +193,45 @@ function App() {
             </PrivateRoute>
           }
         />
+        {/* Company posts (create & manage) */}
+        <Route
+          path="/company/posts"
+          element={
+            <PrivateRoute>
+              <CompanyPosts />
+            </PrivateRoute>
+          }
+        />
+        {/* Student Jobs Page */}
+        <Route
+          path="/jobs"
+          element={
+            <PrivateRoute>
+              <StudentJobs />
+            </PrivateRoute>
+          }
+        />
+        {/* Apply Job Page */}
+        <Route
+          path="/jobs/apply/:jobId"
+          element={
+            <PrivateRoute>
+              <ApplyJob />
+            </PrivateRoute>
+          }
+        />
+        {/* Company Job Detail Page */}
+        <Route
+          path="/company/posts/:postId"
+          element={
+            <PrivateRoute>
+              <CompanyJobDetail />
+            </PrivateRoute>
+          }
+        />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/userTypePage" element={<UserListPage />} />
+        <Route path="/jobs" element={<PublicJobPage />} />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
