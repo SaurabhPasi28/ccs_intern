@@ -432,54 +432,54 @@ CREATE TABLE college_rankings (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Step 15: Companies table
-CREATE TABLE companies (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    industry VARCHAR(150),
-    company_type VARCHAR(100),
-    founded_year INT,
-    description TEXT,
-    headquarters VARCHAR(255),
-    state VARCHAR(100),
-    city VARCHAR(100),
-    address TEXT,
-    zipcode VARCHAR(20),
-    website_url TEXT,
-    linkedin_url TEXT,
-    hr_email VARCHAR(150),
-    phone VARCHAR(50),
-    logo_url TEXT,
-    banner_url TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- -- Step 15: Companies table
+-- CREATE TABLE companies (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     user_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+--     name VARCHAR(255) NOT NULL,
+--     industry VARCHAR(150),
+--     company_type VARCHAR(100),
+--     founded_year INT,
+--     description TEXT,
+--     headquarters VARCHAR(255),
+--     state VARCHAR(100),
+--     city VARCHAR(100),
+--     address TEXT,
+--     zipcode VARCHAR(20),
+--     website_url TEXT,
+--     linkedin_url TEXT,
+--     hr_email VARCHAR(150),
+--     phone VARCHAR(50),
+--     logo_url TEXT,
+--     banner_url TEXT,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
 
--- Step 16: Company Locations
-CREATE TABLE company_locations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-    city VARCHAR(100),
-    state VARCHAR(100),
-    address TEXT
-);
+-- -- Step 16: Company Locations
+-- CREATE TABLE company_locations (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+--     city VARCHAR(100),
+--     state VARCHAR(100),
+--     address TEXT
+-- );
 
--- Step 17: Company Tech Stack
-CREATE TABLE company_tech_stack (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-    technology VARCHAR(100)
-);
+-- -- Step 17: Company Tech Stack
+-- CREATE TABLE company_tech_stack (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+--     technology VARCHAR(100)
+-- );
 
--- Step 18: Company Roles
-CREATE TABLE company_roles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
-    role_name VARCHAR(150),
-    experience_level VARCHAR(50),
-    salary_range VARCHAR(100)
-);
+-- -- Step 18: Company Roles
+-- CREATE TABLE company_roles (
+--     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+--     role_name VARCHAR(150),
+--     experience_level VARCHAR(50),
+--     salary_range VARCHAR(100)
+-- );
 
 -- Step 19: Create indexes for performance
 CREATE INDEX idx_users_email ON users(email);
@@ -500,3 +500,132 @@ CREATE INDEX idx_colleges_referral_code ON colleges(referral_code);
 -- Add foreign key for referred_by_college_id
 ALTER TABLE users ADD CONSTRAINT fk_users_referred_by_college 
 FOREIGN KEY (referred_by_college_id) REFERENCES colleges(id);
+
+-- old company tables are commented updated company tables later so first drop your tables according to company and create new again like below
+
+CREATE TABLE companies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    industry VARCHAR(150),
+    company_type VARCHAR(100), -- Startup / MNC / SME
+    founded_year INT,
+    description TEXT,
+    headquarters VARCHAR(255),
+    state VARCHAR(100),
+    city VARCHAR(100),
+    address TEXT,
+    zipcode VARCHAR(20),
+    hr_email VARCHAR(150),
+    phone VARCHAR(50),
+    logo_url TEXT,
+    banner_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE company_locations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+    city VARCHAR(100),
+    state VARCHAR(100),
+    address TEXT
+);
+
+CREATE TABLE company_social_links (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+    website TEXT,
+    linkedin TEXT,
+    instagram TEXT,
+    facebook TEXT,
+    twitter TEXT,
+    youtube TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE company_social_links
+DROP COLUMN website;
+
+ALTER TABLE companies
+ADD COLUMN website TEXT;
+
+ALTER TABLE company_social_links
+ADD COLUMN pinterest TEXT;
+
+CREATE TABLE company_jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    location_type VARCHAR(50),
+    location VARCHAR(255),
+    must_reside BOOLEAN,
+    timeline VARCHAR(50),
+    hiring_count INT,
+    pay_show_by VARCHAR(50),
+    pay_min NUMERIC,
+    pay_max NUMERIC,
+    pay_rate VARCHAR(50),
+    description TEXT,
+    education VARCHAR(150),
+    experience_years INT,
+    experience_type VARCHAR(150),
+    certifications TEXT,
+    location_qual TEXT,
+    travel VARCHAR(50),
+    custom_benefits TEXT,
+    status VARCHAR(30) DEFAULT 'draft', -- draft / published / closed
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE company_job_types (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_id UUID REFERENCES company_jobs(id) ON DELETE CASCADE,
+    type VARCHAR(100)
+);
+
+CREATE TABLE company_job_benefits (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_id UUID REFERENCES company_jobs(id) ON DELETE CASCADE,
+    benefit VARCHAR(100)
+);
+
+CREATE TABLE company_job_languages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_id UUID REFERENCES company_jobs(id) ON DELETE CASCADE,
+    language VARCHAR(50)
+);
+
+CREATE TABLE company_job_shifts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_id UUID REFERENCES company_jobs(id) ON DELETE CASCADE,
+    shift VARCHAR(50)
+);
+
+CREATE TABLE company_job_questions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_id UUID REFERENCES company_jobs(id) ON DELETE CASCADE,
+    question TEXT,
+    is_required BOOLEAN DEFAULT false
+);
+
+CREATE TABLE job_applications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    job_id UUID NOT NULL REFERENCES company_jobs(id) ON DELETE CASCADE,
+    resume_url TEXT,  -- URL/path to uploaded resume
+    job_title VARCHAR(255),
+    company VARCHAR(255),
+    status VARCHAR(50) DEFAULT 'submitted', -- submitted / reviewed / accepted / rejected
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_job_applications_student_id ON job_applications(student_id);
+CREATE INDEX idx_job_applications_job_id ON job_applications(job_id);
+
+
+

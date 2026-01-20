@@ -11,6 +11,27 @@ const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
 });
+// Multer for resume upload
+const resumeUpload = multer({
+    storage: multer.diskStorage({
+        destination: async (req, file, cb) => {
+            const dir = path.join(__dirname, "..", "uploads", "resumes");
+            await ensureDir(dir);
+            cb(null, dir);
+        },
+        filename: (req, file, cb) => {
+            const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+            cb(null, uniqueSuffix + path.extname(file.originalname));
+        },
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: (req, file, cb) => {
+        const allowed = /pdf|doc|docx/;
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (allowed.test(ext)) return cb(null, true);
+        cb(new Error("Only PDF/DOC/DOCX allowed"));
+    },
+});
 
 const ensureDir = async (dirPath) => {
     await fs.promises.mkdir(dirPath, { recursive: true });
@@ -445,5 +466,219 @@ exports.getPublicProfile = async (req, res) => {
     } catch (err) {
         console.error("GET PUBLIC PROFILE ERROR:", err.message);
         res.status(500).json({ message: "Server error" });
+    }
+};
+
+/* =============================
+   GET COMPANIES WITH JOB POSTS
+   (STUDENT SIDE)
+============================= */
+exports.getCompaniesWithJobs = async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                c.id AS company_id,
+                c.name AS company_name,
+                c.industry,
+                c.company_type,
+
+                cj.id AS job_id,
+                cj.title,
+                cj.location,
+                cj.location_type,
+                cj.pay_min,
+                cj.pay_max,
+                cj.pay_rate,
+                cj.experience_years,
+                cj.experience_type,
+                cj.description,
+                cj.created_at,
+
+                ARRAY_REMOVE(ARRAY_AGG(DISTINCT cjt.type), NULL) AS job_types,
+                ARRAY_REMOVE(ARRAY_AGG(DISTINCT cjb.benefit), NULL) AS benefits,
+                ARRAY_REMOVE(ARRAY_AGG(DISTINCT cjs.shift), NULL) AS shifts,
+                ARRAY_REMOVE(ARRAY_AGG(DISTINCT cjl.language), NULL) AS languages
+
+            FROM companies c
+            JOIN company_jobs cj 
+                ON cj.company_id = c.id
+                AND cj.status = 'published'
+
+            LEFT JOIN company_job_types cjt 
+                ON cjt.job_id = cj.id
+
+            LEFT JOIN company_job_benefits cjb
+                ON cjb.job_id = cj.id
+
+            LEFT JOIN company_job_shifts cjs
+                ON cjs.job_id = cj.id
+
+            LEFT JOIN company_job_languages cjl
+                ON cjl.job_id = cj.id
+
+            GROUP BY 
+                c.id, c.name, c.industry, c.company_type,
+                cj.id
+
+            ORDER BY cj.created_at DESC
+        `;
+
+        const { rows } = await pool.query(query);
+
+        const companiesMap = {};
+
+        rows.forEach(row => {
+            if (!companiesMap[row.company_id]) {
+                companiesMap[row.company_id] = {
+                    company_id: row.company_id,
+                    company_name: row.company_name,
+                    industry: row.industry,
+                    company_type: row.company_type,
+                    jobs: []
+                };
+            }
+
+            companiesMap[row.company_id].jobs.push({
+                id: row.job_id,
+                title: row.title,
+                location: row.location,
+                work_mode: row.location_type,
+                salary: row.pay_min && row.pay_max
+                    ? `${row.pay_min} - ${row.pay_max} ${row.pay_rate || ""}`
+                    : "As per company norms",
+                experience: row.experience_years
+                    ? `${row.experience_years} yrs (${row.experience_type || "Any"})`
+                    : "Not specified",
+                description: row.description,
+                posted_at: row.created_at,
+                job_types: row.job_types || [],
+                benefits: row.benefits || [],
+                shifts: row.shifts || [],
+                languages: row.languages || []
+            });
+        });
+
+        res.json(Object.values(companiesMap));
+
+    } catch (err) {
+        console.error("GET COMPANIES JOBS ERROR:", err.message);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Get basic student info for job application review
+// name + email ONLY
+exports.getStudentBasicInfo = async (req, res) => {
+    try {
+        const userId = req.userId; // ✅ use req.userId from your middleware
+
+        const query = `
+            SELECT name, email
+            FROM users
+            WHERE id = $1
+              AND user_type = 3
+              AND status = true
+        `;
+
+        const { rows } = await pool.query(query, [userId]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Student not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                name: rows[0].name,
+                email: rows[0].email
+            }
+        });
+
+    } catch (error) {
+        console.error("getStudentBasicInfo error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+};
+
+
+// POST /jobs/apply
+exports.applyJob = [
+    resumeUpload.single("resume"), // resume file key from frontend
+    async (req, res) => {
+        try {
+            const studentId = req.userId; // UUID from auth middleware
+            const { jobId, jobTitle, company } = req.body;
+
+            if (!jobId) {
+                return res.status(400).json({ success: false, message: "Job ID is required" });
+            }
+
+            // Check if job exists
+            const jobQuery = "SELECT * FROM company_jobs WHERE id = $1 AND status = 'published'";
+            const { rows: jobRows } = await pool.query(jobQuery, [jobId]);
+            if (jobRows.length === 0) {
+                return res.status(404).json({ success: false, message: "Job not found" });
+            }
+
+            // Check if student already applied
+            const checkQuery = "SELECT * FROM job_applications WHERE student_id = $1 AND job_id = $2";
+            const { rows: existing } = await pool.query(checkQuery, [studentId, jobId]);
+            if (existing.length > 0) {
+                return res.status(400).json({ success: false, message: "Already applied to this job" });
+            }
+
+            // Resume file path
+            let resumeUrl = null;
+            if (req.file) {
+                resumeUrl = `/uploads/student/resumes/${req.file.filename}`;
+            }
+
+            const insertQuery = `
+                INSERT INTO job_applications
+                    (student_id, job_id, resume_url, job_title, company)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING *
+            `;
+            const { rows } = await pool.query(insertQuery, [
+                studentId,
+                jobId,
+                resumeUrl,
+                jobTitle || null,
+                company || null,
+            ]);
+
+            res.status(201).json({ success: true, data: rows[0] });
+        } catch (err) {
+            console.error("APPLY JOB ERROR:", err.message);
+            res.status(500).json({ success: false, message: "Server error" });
+        }
+    }
+];
+// GET /jobs/applied
+exports.getAppliedJobs = async (req, res) => {
+    try {
+        const studentId = req.userId;
+
+        const query = `
+            SELECT job_id
+            FROM job_applications
+            WHERE student_id = $1
+        `;
+
+        const { rows } = await pool.query(query, [studentId]);
+
+        // Convert all job IDs to strings
+        const appliedJobIds = rows.map(row => row.job_id.toString());
+
+        res.json({ success: true, data: appliedJobIds });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: "Server error" });
     }
 };
