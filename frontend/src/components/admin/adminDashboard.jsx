@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Users, UserPlus, Briefcase, CheckCircle, TrendingUp, GraduationCap, School, Building2, LogOut, LayoutDashboard, Settings, Bell, Search, Calendar, ArrowRight, ArrowLeft } from 'lucide-react';
-import UserTypePage from './UserTypePage';
+import UserTypePage from "./userTypePage"
 
 const CountUp = ({ end, duration = 2000, suffix = '' }) => {
   const [count, setCount] = useState(0);
