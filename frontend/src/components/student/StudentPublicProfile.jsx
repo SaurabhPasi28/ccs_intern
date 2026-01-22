@@ -91,7 +91,7 @@ export default function StudentPublicProfile() {
                         <img
                             src={`http://localhost:5000${profile.banner_image_url}`}
                             alt={user.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full"
                         />
                     </div>
                 ) : (

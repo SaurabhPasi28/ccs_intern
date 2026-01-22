@@ -4,7 +4,6 @@
 -- -- 3️⃣ Create the users table with correct structure
 -- CREATE EXTENSION IF NOT EXISTS "pgcrypto"; -- for gen_random_uuid()
 
-
 -- CREATE TABLE user_types (
 --     id INT PRIMARY KEY,
 --     name VARCHAR(50) UNIQUE NOT NULL
@@ -36,7 +35,6 @@
 --     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 --     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 -- );
-
 
 -- CREATE TABLE profiles (
 --   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -148,7 +146,6 @@
 --   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 -- );
 
-
 -- CREATE TABLE college_facilities (
 --   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 --   college_id UUID NOT NULL REFERENCES colleges(id) ON DELETE CASCADE,
@@ -188,7 +185,6 @@
 -- CREATE INDEX idx_college_rankings_college_id ON college_rankings(college_id);
 -- CREATE INDEX idx_users_referred_by_college ON users(referred_by_college_id);
 
-
 -- CREATE TABLE companies (
 --     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 --     user_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
@@ -219,7 +215,6 @@
 --     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 -- );
 
-
 -- CREATE TABLE company_locations (
 --     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 --     company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
@@ -236,7 +231,6 @@
 --     technology VARCHAR(100)
 -- );
 
-
 -- CREATE TABLE company_roles (
 --     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 --     company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
@@ -248,12 +242,9 @@
 
 -- SELECT * FROM companies;
 
-
-
-
-
-
 -- Step 1: Drop all existing tables (careful!)
+
+
 DROP TABLE IF EXISTS college_rankings CASCADE;
 DROP TABLE IF EXISTS college_placements CASCADE;
 DROP TABLE IF EXISTS degrees CASCADE;
@@ -272,7 +263,7 @@ DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS user_types CASCADE;
 
 -- Step 2: Create extensions
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+ 
 
 -- Step 3: User types lookup table
 CREATE TABLE user_types (
