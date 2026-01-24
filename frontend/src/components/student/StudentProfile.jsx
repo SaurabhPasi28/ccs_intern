@@ -7,100 +7,15 @@ import { Button } from "../ui/button";
 import { toast } from "sonner";
 import { STATES_AND_CITIES, SKILL_OPTIONS, CERTIFICATIONS } from "../data/statesAndCities";
 
-// Reusable Section Card Component
-const SectionCard = ({ title, onAdd, children, addLabel = "Add" }) => {
-    return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200 ">
-            <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100">
-                <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-                {onAdd && (
-                    <button
-                        onClick={onAdd}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                        aria-label={addLabel}
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        <span className="hidden sm:inline">{addLabel}</span>
-                    </button>
-                )}
-            </div>
-            {children}
-        </div>
-    );
-};
-
-// Reusable Item Card Component
-const ItemCard = ({ icon, title, subtitle, period, description, link, onDelete, colorScheme = "blue" }) => {
-    const colorClasses = {
-        blue: "bg-blue-50 text-blue-600 border-blue-100",
-        purple: "bg-purple-50 text-purple-600 border-purple-100",
-        green: "bg-green-50 text-green-600 border-green-100",
-        amber: "bg-amber-50 text-amber-600 border-amber-100"
-    };
-
-    return (
-        <div className="flex  gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 border ${colorClasses[colorScheme]}`}>
-                {icon}
-            </div>
-            <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-900 text-base">{title}</h3>
-                {subtitle && <p className="text-gray-700 text-sm mt-0.5">{subtitle}</p>}
-                {period && <p className="text-gray-500 text-xs mt-1">{period}</p>}
-                {description && <p className="text-gray-600 text-sm mt-2 leading-relaxed">{description}</p>}
-                {link && (
-                    <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mt-2"
-                    >
-                        {link.text}
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                    </a>
-                )}
-            </div>
-            {onDelete && (
-                <button
-                    onClick={onDelete}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 h-fit"
-                    aria-label="Delete"
-                >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                </button>
-            )}
-        </div>
-    );
-};
-
-// Form Container Component
-const FormContainer = ({ children, onSubmit }) => {
-    return (
-        <form onSubmit={onSubmit} className=" mb-6 p-5 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
-            {children}
-        </form>
-    );
-};
-
-// Empty State Component
-const EmptyState = ({ message }) => {
-    return (
-        <div className="text-center  py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-            </div>
-            <p className="text-gray-500 text-sm">{message}</p>
-        </div>
-    );
-};
+import { 
+    ProfileHeader, 
+    SectionCard, 
+    FormContainer, 
+    ItemCard,
+    EmptyState, 
+    LoadingSpinner,
+    QuickInfoCard 
+} from "../customreuse";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -153,7 +68,7 @@ export default function StudentProfile() {
 
     const fetchProfile = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/profile`, {
+            const res = await fetch(`${API_URL}/api/student`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
@@ -191,7 +106,7 @@ export default function StudentProfile() {
     };
 
     const updateProfile = async () => {
-        const { ok } = await apiCall(`${API_URL}/api/profile`, "PUT", profile);
+        const { ok } = await apiCall(`${API_URL}/api/student`, "PUT", profile);
         if (ok) {
             toast.success("Profile updated successfully!");
             setEditingIntro(false);
@@ -204,7 +119,7 @@ export default function StudentProfile() {
 
     const addEducation = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall(`${API_URL}/api/profile/education`, "POST", educationForm);
+        const { ok } = await apiCall(`${API_URL}/api/student/education`, "POST", educationForm);
         if (ok) {
             toast.success("Education added");
             setShowEducationForm(false);
@@ -214,13 +129,13 @@ export default function StudentProfile() {
     };
 
     const deleteEducation = async (id) => {
-        const { ok } = await apiCall(`${API_URL}/api/profile/education/${id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/api/student/education/${id}`, "DELETE");
         if (ok) { toast.success("Deleted"); fetchProfile(); }
     };
 
     const addExperience = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall(`${API_URL}/api/profile/experience`, "POST", experienceForm);
+        const { ok } = await apiCall(`${API_URL}/api/student/experience`, "POST", experienceForm);
         if (ok) {
             toast.success("Experience added");
             setShowExperienceForm(false);
@@ -230,7 +145,7 @@ export default function StudentProfile() {
     };
 
     const deleteExperience = async (id) => {
-        const { ok } = await apiCall(`${API_URL}/api/profile/experience/${id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/api/student/experience/${id}`, "DELETE");
         if (ok) { toast.success("Deleted"); fetchProfile(); }
     };
 
@@ -246,7 +161,7 @@ export default function StudentProfile() {
 
     const addSkill = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall(`${API_URL}/api/profile/skills`, "POST", skillForm);
+        const { ok } = await apiCall(`${API_URL}/api/student/skills`, "POST", skillForm);
         if (ok) {
             toast.success("Skill added");
             setShowSkillForm(false);
@@ -257,13 +172,13 @@ export default function StudentProfile() {
     };
 
     const deleteSkill = async (skill_id) => {
-        const { ok } = await apiCall(`${API_URL}/api/profile/skills/${skill_id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/api/student/skills/${skill_id}`, "DELETE");
         if (ok) { toast.success("Deleted"); fetchProfile(); }
     };
 
     const addCertification = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall(`${API_URL}/api/profile/certifications`, "POST", certificationForm);
+        const { ok } = await apiCall(`${API_URL}/api/student/certifications`, "POST", certificationForm);
         if (ok) {
             toast.success("Certification added");
             setShowCertificationForm(false);
@@ -273,7 +188,7 @@ export default function StudentProfile() {
     };
 
     const deleteCertification = async (id) => {
-        const { ok } = await apiCall(`${API_URL}/api/profile/certifications/${id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/api/student/certifications/${id}`, "DELETE");
         if (ok) { toast.success("Deleted"); fetchProfile(); }
     };
 
@@ -283,7 +198,7 @@ export default function StudentProfile() {
         try {
             const formData = new FormData();
             formData.append(type === 'profile' ? 'profileImage' : 'bannerImage', file);
-            const res = await fetch(`${API_URL}/api/profile/media`, {
+            const res = await fetch(`${API_URL}/api/student/media`, {
                 method: "PATCH",
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
@@ -309,7 +224,7 @@ export default function StudentProfile() {
 
     const clearImages = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/profile/media/clear`, {
+            const res = await fetch(`${API_URL}/api/student/media/clear`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -352,7 +267,7 @@ export default function StudentProfile() {
                                 <div className="relative h-36 sm:h-48 bg-gray-900 overflow-hidden">
                                 {profile.banner_image_url && (
                                     <img
-                                    src={`${API_URL}${profile.banner_image_url}`}
+                                    src={`${profile.banner_image_url}`}
                                     alt="Banner"
                                     className="w-full h-full"
                                     />
@@ -405,7 +320,7 @@ export default function StudentProfile() {
                                     <div className="relative">
                                         <div className="w-32 h-32 sm:w-44 sm:h-44 rounded-full bg-white border-4 border-white shadow-xl overflow-hidden">
                                             {profile.profile_image_url ? (
-                                                <img src={`${API_URL}${profile.profile_image_url}`} alt="Profile" className="w-full h-full object-cover" />
+                                                <img src={`${profile.profile_image_url}`} alt="Profile" className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full bg-gray-800 flex items-center justify-center">
                                                     <span className="text-5xl font-bold text-white">{displayName.charAt(0).toUpperCase()}</span>

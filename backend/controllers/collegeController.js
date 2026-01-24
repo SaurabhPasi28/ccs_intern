@@ -1,14 +1,9 @@
 const path = require("path");
 const fs = require("fs");
-const multer = require("multer");
-const sharp = require("sharp");
 const QRCode = require("qrcode");
 const pool = require("../db");
-
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 2 * 1024 * 1024 },
-});
+const { imageUpload } = require("../middleware/upload");
+const { uploadToCloudinary, deleteFromCloudinary } = require("../utils/cloudinaryUpload");
 
 const ensureDir = async (dirPath) => {
     await fs.promises.mkdir(dirPath, { recursive: true });
@@ -287,61 +282,78 @@ exports.deleteRanking = async (req, res) => {
 };
 
 exports.uploadMedia = [
-    upload.fields([
+    imageUpload.fields([
         { name: "logoImage", maxCount: 1 },
         { name: "bannerImage", maxCount: 1 },
     ]),
     async (req, res) => {
         try {
             const userId = req.userId;
-            const collegeResult = await pool.query("SELECT id FROM colleges WHERE user_id = $1", [userId]);
-            const collegeId = collegeResult.rows[0]?.id;
-            if (!collegeId) return res.status(400).json({ message: "Create college profile first" });
+            const collegeResult = await pool.query("SELECT id, logo_url, banner_url FROM colleges WHERE user_id = $1", [userId]);
+            const college = collegeResult.rows[0];
+            
+            if (!college) return res.status(400).json({ message: "Create college profile first" });
 
             const logoFile = req.files?.logoImage?.[0];
             const bannerFile = req.files?.bannerImage?.[0];
 
-            const updates = {};
+            let logoUrl = null;
+            let bannerUrl = null;
 
+            // Upload logo to Cloudinary
             if (logoFile) {
-                const logoDir = path.join(__dirname, "../uploads/college/logos");
-                await ensureDir(logoDir);
-                const logoFilename = `logo_${userId}_${Date.now()}.jpg`;
-                const logoPath = path.join(logoDir, logoFilename);
-                await sharp(logoFile.buffer).resize(300, 300, { fit: "cover" }).jpeg({ quality: 80 }).toFile(logoPath);
-                updates.logo_url = `/uploads/college/logos/${logoFilename}`;
+                // Delete old logo if exists
+                if (college.logo_url) {
+                    const oldPublicId = extractPublicId(college.logo_url);
+                    if (oldPublicId) await deleteFromCloudinary(oldPublicId);
+                }
+
+                const result = await uploadToCloudinary(logoFile.buffer, "college", "logo");
+                logoUrl = result.secure_url;
             }
 
+            // Upload banner to Cloudinary
             if (bannerFile) {
-                const bannerDir = path.join(__dirname, "../uploads/college/banners");
-                await ensureDir(bannerDir);
-                const bannerFilename = `banner_${userId}_${Date.now()}.jpg`;
-                const bannerPath = path.join(bannerDir, bannerFilename);
-                await sharp(bannerFile.buffer).resize(1200, 360, { fit: "cover" }).jpeg({ quality: 80 }).toFile(bannerPath);
-                updates.banner_url = `/uploads/college/banners/${bannerFilename}`;
+                // Delete old banner if exists
+                if (college.banner_url) {
+                    const oldPublicId = extractPublicId(college.banner_url);
+                    if (oldPublicId) await deleteFromCloudinary(oldPublicId);
+                }
+
+                const result = await uploadToCloudinary(bannerFile.buffer, "college", "banner");
+                bannerUrl = result.secure_url;
             }
 
-            if (Object.keys(updates).length === 0) {
+            if (!logoUrl && !bannerUrl) {
                 return res.status(400).json({ message: "No files uploaded" });
             }
 
             const result = await pool.query(
                 `UPDATE colleges SET logo_url = COALESCE($1, logo_url), banner_url = COALESCE($2, banner_url), updated_at = NOW()
                  WHERE id = $3 RETURNING logo_url, banner_url`,
-                [updates.logo_url || null, updates.banner_url || null, collegeId]
+                [logoUrl, bannerUrl, college.id]
             );
 
             res.json({
-                message: "Media updated",
+                message: "Media uploaded successfully to Cloudinary",
                 logo_url: result.rows[0]?.logo_url,
                 banner_url: result.rows[0]?.banner_url,
             });
         } catch (err) {
             console.error("UPLOAD COLLEGE MEDIA ERROR:", err.message);
-            res.status(500).json({ message: "Server error" });
+            res.status(500).json({ message: "Server error: " + err.message });
         }
     },
 ];
+
+// Helper function to extract public_id from Cloudinary URL
+const extractPublicId = (url) => {
+    if (!url) return null;
+    const parts = url.split('/');
+    const filename = parts[parts.length - 1];
+    const publicId = parts.slice(parts.indexOf('ccs')).join('/').replace(/\.[^/.]+$/, '');
+    return publicId;
+};
 
 exports.clearMedia = async (req, res) => {
     try {

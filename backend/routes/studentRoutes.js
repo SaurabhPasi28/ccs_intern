@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 
-const profileController = require("../controllers/profileController");
+const studentController = require("../controllers/studentController");
 
 const {
    getProfile,
@@ -22,7 +22,7 @@ const {
    getStudentBasicInfo,
    applyJob,
    getAppliedJobs,
-} = profileController;
+} = studentController;
 
 /* =============================
    PUBLIC ENDPOINTS (NO AUTH)
