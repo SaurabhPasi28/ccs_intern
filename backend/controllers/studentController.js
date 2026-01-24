@@ -1,38 +1,8 @@
 const path = require("path");
 const fs = require("fs");
-const multer = require("multer");
-const sharp = require("sharp");
 const pool = require("../db");
-
-/* =============================
-   MULTER CONFIG
-============================= */
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
-});
-// Multer for resume upload
-const resumeUpload = multer({
-    storage: multer.diskStorage({
-        destination: async (req, file, cb) => {
-            const dir = path.join(__dirname, "..", "uploads", "resumes");
-            await ensureDir(dir);
-            cb(null, dir);
-        },
-        filename: (req, file, cb) => {
-            const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-            cb(null, uniqueSuffix + path.extname(file.originalname));
-        },
-    }),
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-    fileFilter: (req, file, cb) => {
-        const allowed = /pdf|doc|docx/;
-        const ext = path.extname(file.originalname).toLowerCase();
-        if (allowed.test(ext)) return cb(null, true);
-        cb(new Error("Only PDF/DOC/DOCX allowed"));
-    },
-});
-
+const { imageUpload } = require("../middleware/upload");
+const { uploadToCloudinary, deleteFromCloudinary } = require("../utils/cloudinaryUpload");
 const ensureDir = async (dirPath) => {
     await fs.promises.mkdir(dirPath, { recursive: true });
 };
@@ -309,10 +279,10 @@ exports.deleteCertification = async (req, res) => {
 };
 
 /* =============================
-   MEDIA UPLOAD (DO NOT CHANGE)
+   MEDIA UPLOAD (CLOUDINARY)
 ============================= */
 exports.uploadMedia = [
-    upload.fields([
+    imageUpload.fields([
         { name: "profileImage", maxCount: 1 },
         { name: "bannerImage", maxCount: 1 },
     ]),
@@ -326,33 +296,41 @@ exports.uploadMedia = [
                 return res.status(400).json({ message: "No files provided" });
             }
 
+            // Get existing profile to check for old images
+            const existingProfile = await pool.query(
+                "SELECT profile_image_url, banner_image_url FROM profiles WHERE user_id = $1",
+                [userId]
+            );
+
             let profileUrl = null;
             let bannerUrl = null;
 
+            // Upload profile image to Cloudinary
+            // console.log(existingProfile,"exiting profile url find out kare1");
             if (profileFile) {
-                const dir = path.join(__dirname, "..", "uploads", "profiles");
-                await ensureDir(dir);
+                // Delete old profile image if exists
+                // console.log(existingProfile,"exiting profile url find out kare2");
+                if (existingProfile.rows[0]?.profile_image_url) {
+                    const oldPublicId = extractPublicId(existingProfile.rows[0].profile_image_url);
+                    if (oldPublicId) await deleteFromCloudinary(oldPublicId);
+                }
 
-                const filePath = path.join(dir, `${userId}.jpg`);
-                await sharp(profileFile.buffer)
-                    .resize(400, 400)
-                    .jpeg({ quality: 80 })
-                    .toFile(filePath);
-
-                profileUrl = `/uploads/profiles/${userId}.jpg`;
+                const result = await uploadToCloudinary(profileFile.buffer, "student", "profile");
+                profileUrl = result.secure_url;
             }
 
+            // Upload banner image to Cloudinary
             if (bannerFile) {
-                const dir = path.join(__dirname, "..", "uploads", "banners");
-                await ensureDir(dir);
+                // Delete old banner image if exists
+                if (existingProfile.rows[0]?.banner_image_url) {
+                    const oldPublicId = extractPublicId(existingProfile.rows[0].banner_image_url);
+                console.log(oldPublicId,"--------------------->");
 
-                const filePath = path.join(dir, `${userId}.jpg`);
-                await sharp(bannerFile.buffer)
-                    .resize(1600, 400)
-                    .jpeg({ quality: 80 })
-                    .toFile(filePath);
+                    if (oldPublicId) await deleteFromCloudinary(oldPublicId);
+                }
 
-                bannerUrl = `/uploads/banners/${userId}.jpg`;
+                const result = await uploadToCloudinary(bannerFile.buffer, "student", "banner");
+                bannerUrl = result.secure_url;
             }
 
             const result = await pool.query(
@@ -368,16 +346,23 @@ exports.uploadMedia = [
             );
 
             res.json({
-                message: "Media updated",
+                message: "Media uploaded successfully to Cloudinary",
                 profile_image_url: result.rows[0].profile_image_url,
                 banner_image_url: result.rows[0].banner_image_url,
             });
         } catch (err) {
             console.error("UPLOAD MEDIA ERROR:", err.message);
-            res.status(500).json({ message: "Server error" });
+            res.status(500).json({ message: "Server error: " + err.message });
         }
     },
 ];
+
+// Helper function to extract public_id from Cloudinary URL
+const extractPublicId = (url) => {
+    if (!url) return null;
+    const matches = url.match(/\/upload\/(?:v\d+\/)?(.+?)\.(jpg|jpeg|png|webp)$/);
+    return matches ? matches[1] : null;
+};
 
 /* =============================
    CLEAR MEDIA
@@ -609,7 +594,7 @@ exports.getStudentBasicInfo = async (req, res) => {
 
 // POST /jobs/apply
 exports.applyJob = [
-    resumeUpload.single("resume"), // resume file key from frontend
+    // resumeUpload.single("resume"), // resume file key from frontend
     async (req, res) => {
         try {
             const studentId = req.userId; // UUID from auth middleware

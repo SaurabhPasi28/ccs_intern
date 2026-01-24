@@ -1,78 +1,90 @@
 const pool = require("../db");
 const path = require("path");
 const fs = require("fs");
-const sharp = require("sharp");
+const { imageUpload } = require("../middleware/upload");
+const { uploadToCloudinary, deleteFromCloudinary } = require("../utils/cloudinaryUpload");
 
 const ensureDir = async (dirPath) => {
     await fs.promises.mkdir(dirPath, { recursive: true });
 };
-exports.uploadCompanyMedia = async (req, res) => {
-    try {
-        const userId = req.userId;
 
-        const companyRes = await pool.query(
-            "SELECT id FROM companies WHERE user_id = $1",
-            [userId]
-        );
+exports.uploadCompanyMedia = [
+    imageUpload.fields([
+        { name: "logoImage", maxCount: 1 },
+        { name: "bannerImage", maxCount: 1 },
+    ]),
+    async (req, res) => {
+        try {
+            const userId = req.userId;
 
-        if (!companyRes.rows.length) {
-            return res.status(404).json({ message: "Company profile not found" });
+            const companyRes = await pool.query(
+                "SELECT id, logo_url, banner_url FROM companies WHERE user_id = $1",
+                [userId]
+            );
+
+            if (!companyRes.rows.length) {
+                return res.status(404).json({ message: "Company profile not found" });
+            }
+
+            const company = companyRes.rows[0];
+            const logoFile = req.files?.logoImage?.[0];
+            const bannerFile = req.files?.bannerImage?.[0];
+
+            let logoUrl = null;
+            let bannerUrl = null;
+
+            /* LOGO - Upload to Cloudinary */
+            if (logoFile) {
+                // Delete old logo if exists
+                if (company.logo_url) {
+                    const oldPublicId = extractPublicId(company.logo_url);
+                    if (oldPublicId) await deleteFromCloudinary(oldPublicId);
+                }
+
+                const result = await uploadToCloudinary(logoFile.buffer, "company", "logo");
+                logoUrl = result.secure_url;
+            }
+
+            /* BANNER - Upload to Cloudinary */
+            if (bannerFile) {
+                // Delete old banner if exists
+                if (company.banner_url) {
+                    const oldPublicId = extractPublicId(company.banner_url);
+                    if (oldPublicId) await deleteFromCloudinary(oldPublicId);
+                }
+
+                const result = await uploadToCloudinary(bannerFile.buffer, "company", "banner");
+                bannerUrl = result.secure_url;
+            }
+
+            const updateRes = await pool.query(
+                `UPDATE companies
+                SET
+                    logo_url = COALESCE($1, logo_url),
+                    banner_url = COALESCE($2, banner_url),
+                    updated_at = NOW()
+                WHERE id = $3
+                RETURNING *`,
+                [logoUrl, bannerUrl, company.id]
+            );
+
+            res.json({ 
+                message: "Media uploaded successfully to Cloudinary",
+                company: updateRes.rows[0] 
+            });
+        } catch (err) {
+            console.error("UPLOAD COMPANY MEDIA ERROR:", err.message);
+            res.status(500).json({ message: "Server error: " + err.message });
         }
+    },
+];
 
-        const companyId = companyRes.rows[0].id;
-
-        let logoUrl = null;
-        let bannerUrl = null;
-
-        const uploadDir = path.join(__dirname, "../uploads/company");
-        await ensureDir(uploadDir);
-
-        /* LOGO */
-        if (req.files?.logoImage) {
-            const logoFile = req.files.logoImage[0];
-            const logoName = `logo_${companyId}_${Date.now()}.webp`;
-            const logoPath = path.join(uploadDir, logoName);
-
-            await sharp(logoFile.buffer)
-                .resize(300, 300)
-                .webp({ quality: 80 })
-                .toFile(logoPath);
-
-            logoUrl = `/uploads/company/${logoName}`;
-        }
-
-        /* BANNER */
-        if (req.files?.bannerImage) {
-            const bannerFile = req.files.bannerImage[0];
-            const bannerName = `banner_${companyId}_${Date.now()}.webp`;
-            const bannerPath = path.join(uploadDir, bannerName);
-
-            await sharp(bannerFile.buffer)
-                .resize(1200, 400)
-                .webp({ quality: 80 })
-                .toFile(bannerPath);
-
-            bannerUrl = `/uploads/company/${bannerName}`;
-        }
-
-        const updateRes = await pool.query(
-            `
-            UPDATE companies
-            SET
-                logo_url = COALESCE($1, logo_url),
-                banner_url = COALESCE($2, banner_url),
-                updated_at = NOW()
-            WHERE id = $3
-            RETURNING *
-            `,
-            [logoUrl, bannerUrl, companyId]
-        );
-
-        res.json({ company: updateRes.rows[0] });
-    } catch (err) {
-        console.error("UPLOAD COMPANY MEDIA ERROR:", err.message);
-        res.status(500).json({ message: "Server error" });
-    }
+// Helper function to extract public_id from Cloudinary URL
+const extractPublicId = (url) => {
+    if (!url) return null;
+    const parts = url.split('/');
+    const publicId = parts.slice(parts.indexOf('ccs')).join('/').replace(/\.[^/.]+$/, '');
+    return publicId;
 };
 
 exports.saveCompany = async (req, res) => {
