@@ -30,8 +30,70 @@ const DEGREE_LEVELS = [
     "Diploma", "Other"
 ];
 
+// Helper component for displaying information
+function InfoItem({ label, value, icon }) {
+    const renderValue = () => {
+        if (!value) return <span className="text-gray-400">Not specified</span>;
+        
+        if (icon === 'email') {
+            return (
+                <a href={`mailto:${value}`} className="text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                    {value}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                </a>
+            );
+        }
+        
+        if (icon === 'phone') {
+            return (
+                <a href={`tel:${value}`} className="text-blue-600 hover:text-blue-700">
+                    {value}
+                </a>
+            );
+        }
+        
+        if (icon === 'link') {
+            return (
+                <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                    {value}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                </a>
+            );
+        }
+        
+        return <span className="text-gray-900 font-medium">{value}</span>;
+    };
+
+    return (
+        <div className="flex flex-col">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</span>
+            {renderValue()}
+        </div>
+    );
+}
+
 export default function CollegeProfile() {
     const token = localStorage.getItem("token");
+    const [loading, setLoading] = useState(true);
+    const [displayName, setDisplayName] = useState("Your College");
+    const [showEditMenu, setShowEditMenu] = useState(false);
+
+    // Loading states
+    const [savingCollege, setSavingCollege] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState({ profile: false, banner: false });
+    const [addingDegree, setAddingDegree] = useState(false);
+    const [addingPlacement, setAddingPlacement] = useState(false);
+    const [addingRanking, setAddingRanking] = useState(false);
+    const [deletingItem, setDeletingItem] = useState(null);
+
+    // Edit modes
+    const [editingCollege, setEditingCollege] = useState(false);
+    const [originalCollege, setOriginalCollege] = useState({});
+    const [editingHOD, setEditingHOD] = useState(false);
 
     const [college, setCollege] = useState({
         name: "",
@@ -78,17 +140,9 @@ export default function CollegeProfile() {
         category: "",
         certificate_url: "",
     });
-
-    const [loading, setLoading] = useState(true);
-    const [editingIntro, setEditingIntro] = useState(false);
-    const [editingHOD, setEditingHOD] = useState(false);
-    const [showEditMenu, setShowEditMenu] = useState(false);
-    const [mediaUploading, setMediaUploading] = useState(false);
     
     const [qrCode, setQrCode] = useState(null);
     const [qrLoading, setQrLoading] = useState(false);
-
-    const displayName = college.name || "College Name";
 
     useEffect(() => {
         fetchCollege();
@@ -134,6 +188,8 @@ export default function CollegeProfile() {
                     hod_phone: c.hod_phone || "",
                     hod_designation: c.hod_designation || "",
                 });
+                setOriginalCollege(c);
+                setDisplayName(c.name || "Your College");
                 setDegrees(data.degrees || []);
                 setPlacements(data.placements || []);
                 setRankings(data.rankings || []);
@@ -168,21 +224,37 @@ export default function CollegeProfile() {
         toast.success("QR Code downloaded!");
     };
 
+    const startEditingCollege = () => {
+        setOriginalCollege({ ...college });
+        setEditingCollege(true);
+    };
+
+    const cancelEditCollege = () => {
+        setCollege(originalCollege);
+        setEditingCollege(false);
+        setEditingHOD(false);
+    };
+
     const updateCollege = async () => {
+        if (savingCollege) return;
+        
+        setSavingCollege(true);
         const { ok } = await apiCall(`${API_URL}/api/college`, "PUT", college);
         if (ok) {
             toast.success("College profile updated successfully!");
-            setEditingIntro(false);
+            setEditingCollege(false);
             setEditingHOD(false);
             fetchCollege();
         } else {
             toast.error("Failed to update");
         }
+        setSavingCollege(false);
     };
 
     const handleImageUpload = async (file, type) => {
         if (!file) return;
-        setMediaUploading(true);
+        
+        setUploadingImage(prev => ({ ...prev, [type]: true }));
         try {
             const formData = new FormData();
             formData.append(type === 'profile' ? 'logoImage' : 'bannerImage', file);
@@ -206,7 +278,7 @@ export default function CollegeProfile() {
         } catch (err) {
             toast.error("Failed to upload image");
         } finally {
-            setMediaUploading(false);
+            setUploadingImage(prev => ({ ...prev, [type]: false }));
         }
     };
 
@@ -231,6 +303,9 @@ export default function CollegeProfile() {
 
     const addDegree = async (e) => {
         e.preventDefault();
+        if (addingDegree) return;
+        
+        setAddingDegree(true);
         const { ok } = await apiCall(`${API_URL}/api/college/degrees`, "POST", degreeForm);
         if (ok) {
             toast.success("Degree added");
@@ -238,19 +313,29 @@ export default function CollegeProfile() {
             setDegreeForm({ degree_name: "" });
             setCustomDegreeMode(false);
             fetchCollege();
-        } else toast.error("Failed to add degree");
+        } else {
+            toast.error("Failed to add degree");
+        }
+        setAddingDegree(false);
     };
 
     const deleteDegree = async (degree_id) => {
+        if (deletingItem) return;
+        
+        setDeletingItem(degree_id);
         const { ok } = await apiCall(`${API_URL}/api/college/degrees/${degree_id}`, "DELETE");
         if (ok) { 
             toast.success("Deleted"); 
             fetchCollege(); 
         }
+        setDeletingItem(null);
     };
 
     const addPlacement = async (e) => {
         e.preventDefault();
+        if (addingPlacement) return;
+        
+        setAddingPlacement(true);
         const { ok } = await apiCall(`${API_URL}/api/college/placements`, "POST", placementForm);
         if (ok) {
             toast.success("Placement added");
@@ -264,19 +349,29 @@ export default function CollegeProfile() {
                 top_recruiters: "" 
             });
             fetchCollege();
-        } else toast.error("Failed to add placement");
+        } else {
+            toast.error("Failed to add placement");
+        }
+        setAddingPlacement(false);
     };
 
     const deletePlacement = async (id) => {
+        if (deletingItem) return;
+        
+        setDeletingItem(id);
         const { ok } = await apiCall(`${API_URL}/api/college/placements/${id}`, "DELETE");
         if (ok) { 
             toast.success("Deleted"); 
             fetchCollege(); 
         }
+        setDeletingItem(null);
     };
 
     const addRanking = async (e) => {
         e.preventDefault();
+        if (addingRanking) return;
+        
+        setAddingRanking(true);
         const { ok } = await apiCall(`${API_URL}/api/college/rankings`, "POST", rankingForm);
         if (ok) {
             toast.success("Ranking added");
@@ -289,28 +384,33 @@ export default function CollegeProfile() {
                 certificate_url: "" 
             });
             fetchCollege();
-        } else toast.error("Failed to add ranking");
+        } else {
+            toast.error("Failed to add ranking");
+        }
+        setAddingRanking(false);
     };
 
     const deleteRanking = async (id) => {
+        if (deletingItem) return;
+        
+        setDeletingItem(id);
         const { ok } = await apiCall(`${API_URL}/api/college/rankings/${id}`, "DELETE");
         if (ok) { 
             toast.success("Deleted"); 
             fetchCollege(); 
         }
+        setDeletingItem(null);
     };
 
-    if (loading) {
-        return <LoadingSpinner message="Loading college profile..." />;
-    }
+    if (loading) return <LoadingSpinner message="Loading college profile..." />;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="min-h-screen bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Column - Main Content */}
+                    {/* LEFT COLUMN - MAIN CONTENT */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Profile Header */}
+                        {/* HEADER with ProfileHeader component */}
                         <ProfileHeader
                             profile={college}
                             displayName={displayName}
@@ -319,132 +419,134 @@ export default function CollegeProfile() {
                             setShowEditMenu={setShowEditMenu}
                             handleImageUpload={handleImageUpload}
                             clearImages={clearImages}
-                            setEditingIntro={setEditingIntro}
+                            setEditingIntro={startEditingCollege}
+                            uploadingImage={uploadingImage}
                         >
-                            <p className="text-gray-600 text-base">
-                                {college.city && college.state ? `${college.city}, ${college.state}` : "Add location"}
+                            <p className="text-base text-gray-600 mt-2">
+                                {college.accreditation || "Educational Institution"}
                             </p>
-                            {college.established_year && (
-                                <p className="text-gray-500 text-sm">Established {college.established_year}</p>
-                            )}
+                            <div className="flex items-center gap-2 mt-3 text-sm text-gray-500">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span>{college.city && college.state ? `${college.city}, ${college.state}` : "Add location"}</span>
+                            </div>
                         </ProfileHeader>
 
-                        {/* Basic Info Section */}
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                            <div className="p-6">
-                                <div className="flex justify-between items-center mb-5">
-                                    <h2 className="text-xl font-semibold text-gray-900">Basic Information</h2>
-                                    <button
-                                        onClick={() => setEditingIntro(!editingIntro)}
-                                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                    >
-                                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                        </svg>
-                                    </button>
-                                </div>
-
-                                {editingIntro ? (
+                        {/* COLLEGE INFORMATION SECTION */}
+                        <SectionCard 
+                            title="College Information" 
+                            onAdd={editingCollege ? null : startEditingCollege}
+                            addLabel="Edit"
+                        >
+                            {editingCollege ? (
+                                <FormContainer>
                                     <div className="space-y-4">
+                                        <div>
+                                            <Label>College Name *</Label>
+                                            <Input
+                                                value={college.name}
+                                                onChange={(e) => setCollege({ ...college, name: e.target.value })}
+                                                placeholder="Enter college name"
+                                                className="mt-1.5"
+                                            />
+                                        </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <Label className="text-sm font-medium text-gray-700">College Name *</Label>
-                                                <Input
-                                                    required
-                                                    value={college.name}
-                                                    onChange={(e) => setCollege({...college, name: e.target.value})}
-                                                    placeholder="Enter college name"
-                                                    className="mt-1.5"
-                                                />
-                                            </div>
-                                            <div>
-                                                <Label className="text-sm font-medium text-gray-700">Established Year</Label>
+                                                <Label>Established Year</Label>
                                                 <Input
                                                     type="number"
                                                     value={college.established_year}
-                                                    onChange={(e) => setCollege({...college, established_year: e.target.value})}
-                                                    placeholder="Ex: 1995"
+                                                    onChange={(e) => setCollege({ ...college, established_year: e.target.value })}
+                                                    placeholder="e.g., 1985"
                                                     className="mt-1.5"
                                                 />
                                             </div>
                                             <div>
-                                                <Label className="text-sm font-medium text-gray-700">Accreditation</Label>
+                                                <Label>Accreditation</Label>
                                                 <Input
                                                     value={college.accreditation}
-                                                    onChange={(e) => setCollege({...college, accreditation: e.target.value})}
-                                                    placeholder="Ex: NAAC A++"
+                                                    onChange={(e) => setCollege({ ...college, accreditation: e.target.value })}
+                                                    placeholder="e.g., NAAC A+"
                                                     className="mt-1.5"
                                                 />
                                             </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <Label className="text-sm font-medium text-gray-700">State *</Label>
+                                                <Label>State</Label>
                                                 <select
                                                     value={college.state}
-                                                    onChange={(e) => setCollege({...college, state: e.target.value, city: ""})}
-                                                    className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    onChange={(e) => setCollege({ ...college, state: e.target.value, city: "" })}
+                                                    className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5"
                                                 >
-                                                    <option value="">Select State</option>
+                                                    <option value="">Select state</option>
                                                     {Object.keys(STATES_AND_CITIES).map((state) => (
                                                         <option key={state} value={state}>{state}</option>
                                                     ))}
                                                 </select>
                                             </div>
                                             <div>
-                                                <Label className="text-sm font-medium text-gray-700">City *</Label>
+                                                <Label>City</Label>
                                                 <select
                                                     value={college.city}
-                                                    onChange={(e) => setCollege({...college, city: e.target.value})}
+                                                    onChange={(e) => setCollege({ ...college, city: e.target.value })}
                                                     disabled={!college.state}
-                                                    className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 disabled:bg-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 disabled:bg-gray-100"
                                                 >
-                                                    <option value="">Select City</option>
+                                                    <option value="">Select city</option>
                                                     {college.state && STATES_AND_CITIES[college.state]?.map((city) => (
                                                         <option key={city} value={city}>{city}</option>
                                                     ))}
                                                 </select>
                                             </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <Label className="text-sm font-medium text-gray-700">Zipcode</Label>
+                                                <Label>Zipcode</Label>
                                                 <Input
                                                     value={college.zipcode}
-                                                    onChange={(e) => setCollege({...college, zipcode: e.target.value})}
-                                                    placeholder="Ex: 560001"
-                                                    className="mt-1.5"
-                                                />
-                                            </div>
-                                            <div className="sm:col-span-2">
-                                                <Label className="text-sm font-medium text-gray-700">Address</Label>
-                                                <Input
-                                                    value={college.address}
-                                                    onChange={(e) => setCollege({...college, address: e.target.value})}
-                                                    placeholder="Enter full address"
+                                                    onChange={(e) => setCollege({ ...college, zipcode: e.target.value })}
+                                                    placeholder="Postal code"
                                                     className="mt-1.5"
                                                 />
                                             </div>
                                             <div>
-                                                <Label className="text-sm font-medium text-gray-700">Phone</Label>
+                                                <Label>Phone</Label>
                                                 <Input
                                                     value={college.phone}
-                                                    onChange={(e) => setCollege({...college, phone: e.target.value})}
-                                                    placeholder="+91 XXXXX XXXXX"
+                                                    onChange={(e) => setCollege({ ...college, phone: e.target.value })}
+                                                    placeholder="College phone"
                                                     className="mt-1.5"
                                                 />
                                             </div>
+                                        </div>
+                                        <div>
+                                            <Label>Address</Label>
+                                            <Input
+                                                value={college.address}
+                                                onChange={(e) => setCollege({ ...college, address: e.target.value })}
+                                                placeholder="Full address"
+                                                className="mt-1.5"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <Label className="text-sm font-medium text-gray-700">Official Email</Label>
+                                                <Label>Email</Label>
                                                 <Input
                                                     type="email"
                                                     value={college.email}
-                                                    onChange={(e) => setCollege({...college, email: e.target.value})}
-                                                    placeholder="info@college.edu"
+                                                    onChange={(e) => setCollege({ ...college, email: e.target.value })}
+                                                    placeholder="College email"
                                                     className="mt-1.5"
                                                 />
                                             </div>
-                                            <div className="sm:col-span-2">
-                                                <Label className="text-sm font-medium text-gray-700">Website URL</Label>
+                                            <div>
+                                                <Label>Website URL</Label>
                                                 <Input
                                                     value={college.website_url}
-                                                    onChange={(e) => setCollege({...college, website_url: e.target.value})}
+                                                    onChange={(e) => setCollege({ ...college, website_url: e.target.value })}
                                                     placeholder="https://www.college.edu"
                                                     className="mt-1.5"
                                                 />
@@ -452,130 +554,217 @@ export default function CollegeProfile() {
                                         </div>
                                         <div className="flex gap-3 justify-end pt-2">
                                             <button
-                                                onClick={() => setEditingIntro(false)}
-                                                className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
+                                                onClick={cancelEditCollege}
+                                                disabled={savingCollege}
+                                                className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
                                             >
                                                 Cancel
                                             </button>
                                             <button
                                                 onClick={updateCollege}
-                                                className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                                                disabled={savingCollege}
+                                                className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
                                             >
-                                                Save
+                                                {savingCollege && (
+                                                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                )}
+                                                {savingCollege ? "Saving..." : "Save Changes"}
                                             </button>
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="space-y-3 text-gray-700">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <p className="text-xs text-gray-500">Established</p>
-                                                <p className="font-medium">{college.established_year || "Not specified"}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Accreditation</p>
-                                                <p className="font-medium">{college.accreditation || "Not specified"}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Location</p>
-                                                <p className="font-medium">{college.city && college.state ? `${college.city}, ${college.state}` : "Not specified"}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Zipcode</p>
-                                                <p className="font-medium">{college.zipcode || "Not specified"}</p>
-                                            </div>
-                                            <div className="col-span-2">
-                                                <p className="text-xs text-gray-500">Address</p>
-                                                <p className="font-medium">{college.address || "Not specified"}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Phone</p>
-                                                <p className="font-medium">{college.phone || "Not specified"}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-gray-500">Email</p>
-                                                <p className="font-medium break-all">{college.email || "Not specified"}</p>
-                                            </div>
-                                            <div className="col-span-2">
-                                                <p className="text-xs text-gray-500">Website</p>
-                                                <p className="font-medium break-all">{college.website_url || "Not specified"}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                                </FormContainer>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                                    <InfoItem label="College Name" value={college.name} />
+                                    <InfoItem label="Established" value={college.established_year} />
+                                    <InfoItem label="Accreditation" value={college.accreditation} />
+                                    <InfoItem label="Location" value={college.city && college.state ? `${college.city}, ${college.state}` : null} />
+                                    <InfoItem label="Address" value={college.address} />
+                                    <InfoItem label="Zipcode" value={college.zipcode} />
+                                    <InfoItem label="Phone" value={college.phone} icon="phone" />
+                                    <InfoItem label="Email" value={college.email} icon="email" />
+                                    <InfoItem label="Website" value={college.website_url} icon="link" />
+                                </div>
+                            )}
+                        </SectionCard>
 
-                        {/* Degrees Offered Section */}
+                        {/* HOD SECTION */}
                         <SectionCard
-                            title="Degrees Offered"
-                            onAdd={() => setShowDegreeForm(!showDegreeForm)}
-                            addLabel="Add"
+                            title="HOD Contact"
+                            onAdd={() => setEditingHOD(!editingHOD)}
+                            addLabel="Edit"
                         >
-                            {showDegreeForm && (
-                                <FormContainer onSubmit={addDegree}>
-                                    <div className="flex flex-col sm:flex-row gap-3">
-                                        <select
-                                            value={customDegreeMode ? "Other" : degreeForm.degree_name}
-                                            onChange={(e) => handleDegreeSelect(e.target.value)}
-                                            className="flex-1 border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            required={!customDegreeMode}
-                                        >
-                                            <option value="">Select degree</option>
-                                            {DEGREE_LEVELS.map((degree) => (
-                                                <option key={degree} value={degree}>{degree}</option>
-                                            ))}
-                                        </select>
-                                        {customDegreeMode && (
+                            {editingHOD ? (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <Label>Name</Label>
                                             <Input
-                                                required
-                                                value={degreeForm.degree_name}
-                                                onChange={(e) => setDegreeForm({ degree_name: e.target.value })}
-                                                placeholder="Enter custom degree name"
-                                                className="flex-1"
+                                                value={college.hod_name}
+                                                onChange={(e) => setCollege({...college, hod_name: e.target.value})}
+                                                placeholder="HOD Name"
+                                                className="mt-1.5"
                                             />
-                                        )}
+                                        </div>
+                                        <div>
+                                            <Label>Designation</Label>
+                                            <Input
+                                                value={college.hod_designation}
+                                                onChange={(e) => setCollege({...college, hod_designation: e.target.value})}
+                                                placeholder="Head of Department"
+                                                className="mt-1.5"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label>Email</Label>
+                                            <Input
+                                                type="email"
+                                                value={college.hod_email}
+                                                onChange={(e) => setCollege({...college, hod_email: e.target.value})}
+                                                placeholder="hod@college.edu"
+                                                className="mt-1.5"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label>Phone</Label>
+                                            <Input
+                                                value={college.hod_phone}
+                                                onChange={(e) => setCollege({...college, hod_phone: e.target.value})}
+                                                placeholder="+91 XXXXX XXXXX"
+                                                className="mt-1.5"
+                                            />
+                                        </div>
                                     </div>
                                     <div className="flex gap-3 justify-end pt-2">
                                         <button
-                                            type="button"
-                                            onClick={() => {
-                                                setShowDegreeForm(false);
-                                                setDegreeForm({ degree_name: "" });
-                                                setCustomDegreeMode(false);
-                                            }}
-                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
+                                            onClick={() => setEditingHOD(false)}
+                                            disabled={savingCollege}
+                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
                                         >
                                             Cancel
                                         </button>
                                         <button
-                                            type="submit"
-                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                                            onClick={updateCollege}
+                                            disabled={savingCollege}
+                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
                                         >
-                                            Save
+                                            {savingCollege && (
+                                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            )}
+                                            {savingCollege ? "Saving..." : "Save"}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                                    <InfoItem label="Name" value={college.hod_name} />
+                                    <InfoItem label="Designation" value={college.hod_designation} />
+                                    <InfoItem label="Email" value={college.hod_email} icon="email" />
+                                    <InfoItem label="Phone" value={college.hod_phone} icon="phone" />
+                                </div>
+                            )}
+                        </SectionCard>
+
+                        {/* DEGREES SECTION */}
+                        <SectionCard title="Degrees Offered" onAdd={() => setShowDegreeForm(!showDegreeForm)}>
+                            {showDegreeForm && (
+                                <FormContainer onSubmit={addDegree}>
+                                    <div>
+                                        <Label>Degree *</Label>
+                                        {!customDegreeMode ? (
+                                            <select
+                                                required
+                                                value={degreeForm.degree_name}
+                                                onChange={(e) => handleDegreeSelect(e.target.value)}
+                                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5"
+                                            >
+                                                <option value="">Select degree</option>
+                                                {DEGREE_LEVELS.map((deg) => (
+                                                    <option key={deg} value={deg}>{deg}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    required
+                                                    value={degreeForm.degree_name}
+                                                    onChange={(e) => setDegreeForm({ degree_name: e.target.value })}
+                                                    placeholder="Enter custom degree"
+                                                    className="mt-1.5 flex-1"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setCustomDegreeMode(false);
+                                                        setDegreeForm({ degree_name: "" });
+                                                    }}
+                                                    className="mt-1.5 px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-3 justify-end">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => {
+                                                setShowDegreeForm(false);
+                                                setCustomDegreeMode(false);
+                                                setDegreeForm({ degree_name: "" });
+                                            }}
+                                            disabled={addingDegree}
+                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button 
+                                            type="submit" 
+                                            disabled={addingDegree}
+                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
+                                        >
+                                            {addingDegree && (
+                                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            )}
+                                            {addingDegree ? "Saving..." : "Save"}
                                         </button>
                                     </div>
                                 </FormContainer>
                             )}
-
                             {degrees.length === 0 && !showDegreeForm ? (
                                 <EmptyState message="No degrees added yet" />
                             ) : (
                                 <div className="flex flex-wrap gap-2">
-                                    {degrees.map((degree) => (
+                                    {degrees.map((deg) => (
                                         <div
-                                            key={degree.id}
-                                            className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-100 hover:bg-blue-100 transition-colors group"
+                                            key={deg.degree_id}
+                                            className="bg-purple-50 border border-purple-200 px-4 py-2 rounded-full flex items-center gap-2 hover:bg-purple-100 transition-colors group"
                                         >
-                                            <span>{degree.degree_name}</span>
+                                            <span className="text-sm font-medium text-purple-900">{deg.degree_name}</span>
                                             <button
-                                                onClick={() => deleteDegree(degree.id)}
-                                                className="p-0.5 hover:bg-blue-200 rounded-full transition-colors"
-                                                aria-label="Delete degree"
+                                                onClick={() => deleteDegree(deg.degree_id)}
+                                                disabled={deletingItem === deg.degree_id}
+                                                className="text-purple-700 hover:text-purple-900 opacity-70 group-hover:opacity-100 disabled:opacity-50"
                                             >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
+                                                {deletingItem === deg.degree_id ? (
+                                                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                ) : (
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                )}
                                             </button>
                                         </div>
                                     ))}
@@ -583,96 +772,99 @@ export default function CollegeProfile() {
                             )}
                         </SectionCard>
 
-                        {/* Placement Snapshot Section */}
-                        <SectionCard
-                            title="Placement Snapshot"
-                            onAdd={() => setShowPlacementForm(!showPlacementForm)}
-                            addLabel="Add"
-                        >
+                        {/* PLACEMENTS SECTION */}
+                        <SectionCard title="Placement Records" onAdd={() => setShowPlacementForm(!showPlacementForm)}>
                             {showPlacementForm && (
                                 <FormContainer onSubmit={addPlacement}>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <Label className="text-sm font-medium text-gray-700">Academic Year *</Label>
+                                            <Label>Academic Year *</Label>
                                             <Input
                                                 required
                                                 value={placementForm.academic_year}
                                                 onChange={(e) => setPlacementForm({...placementForm, academic_year: e.target.value})}
-                                                placeholder="2024-25"
+                                                placeholder="e.g., 2023-24"
                                                 className="mt-1.5"
                                             />
                                         </div>
                                         <div>
-                                            <Label className="text-sm font-medium text-gray-700">Placement %</Label>
+                                            <Label>Placement %</Label>
                                             <Input
                                                 type="number"
+                                                step="0.01"
                                                 value={placementForm.placement_percent}
                                                 onChange={(e) => setPlacementForm({...placementForm, placement_percent: e.target.value})}
-                                                placeholder="85"
+                                                placeholder="e.g., 85.5"
+                                                className="mt-1.5"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <Label>Average Package (LPA)</Label>
+                                            <Input
+                                                value={placementForm.average_package}
+                                                onChange={(e) => setPlacementForm({...placementForm, average_package: e.target.value})}
+                                                placeholder="e.g., 7.5"
                                                 className="mt-1.5"
                                             />
                                         </div>
                                         <div>
-                                            <Label className="text-sm font-medium text-gray-700">Companies Visited</Label>
+                                            <Label>Highest Package (LPA)</Label>
+                                            <Input
+                                                value={placementForm.highest_package}
+                                                onChange={(e) => setPlacementForm({...placementForm, highest_package: e.target.value})}
+                                                placeholder="e.g., 45"
+                                                className="mt-1.5"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <Label>Companies Visited</Label>
                                             <Input
                                                 type="number"
                                                 value={placementForm.companies_visited}
                                                 onChange={(e) => setPlacementForm({...placementForm, companies_visited: e.target.value})}
-                                                placeholder="50"
+                                                placeholder="e.g., 150"
                                                 className="mt-1.5"
                                             />
                                         </div>
                                         <div>
-                                            <Label className="text-sm font-medium text-gray-700">Average Package (LPA)</Label>
-                                            <Input
-                                                type="number"
-                                                value={placementForm.average_package}
-                                                onChange={(e) => setPlacementForm({...placementForm, average_package: e.target.value})}
-                                                placeholder="6.5"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-sm font-medium text-gray-700">Highest Package (LPA)</Label>
-                                            <Input
-                                                type="number"
-                                                value={placementForm.highest_package}
-                                                onChange={(e) => setPlacementForm({...placementForm, highest_package: e.target.value})}
-                                                placeholder="25"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-sm font-medium text-gray-700">Top Recruiters</Label>
+                                            <Label>Top Recruiters</Label>
                                             <Input
                                                 value={placementForm.top_recruiters}
                                                 onChange={(e) => setPlacementForm({...placementForm, top_recruiters: e.target.value})}
-                                                placeholder="Google, Microsoft, Amazon"
+                                                placeholder="e.g., TCS, Infosys, Wipro"
                                                 className="mt-1.5"
                                             />
                                         </div>
                                     </div>
-                                    <div className="flex gap-3 justify-end pt-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setShowPlacementForm(false);
-                                                setPlacementForm({ academic_year: "", placement_percent: "", average_package: "", highest_package: "", companies_visited: "", top_recruiters: "" });
-                                            }}
-                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
+                                    <div className="flex gap-3 justify-end">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowPlacementForm(false)}
+                                            disabled={addingPlacement}
+                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
                                         >
                                             Cancel
                                         </button>
-                                        <button
-                                            type="submit"
-                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                                        <button 
+                                            type="submit" 
+                                            disabled={addingPlacement}
+                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
                                         >
-                                            Save
+                                            {addingPlacement && (
+                                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            )}
+                                            {addingPlacement ? "Saving..." : "Save"}
                                         </button>
                                     </div>
                                 </FormContainer>
                             )}
-
                             {placements.length === 0 && !showPlacementForm ? (
                                 <EmptyState message="No placement records added yet" />
                             ) : (
@@ -681,32 +873,24 @@ export default function CollegeProfile() {
                                         <ItemCard
                                             key={p.id}
                                             colorScheme="green"
-                                            icon={
-                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                                </svg>
-                                            }
-                                            title={`Academic Year ${p.academic_year}`}
-                                            subtitle={`Placement: ${p.placement_percent || "N/A"}% | Companies: ${p.companies_visited || "N/A"}`}
-                                            description={`Avg Package: ${p.average_package || "N/A"} LPA | Highest: ${p.highest_package || "N/A"} LPA${p.top_recruiters ? ` | Top Recruiters: ${p.top_recruiters}` : ''}`}
+                                            icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>}
+                                            title={`Placements ${p.academic_year}`}
+                                            description={`Placement: ${p.placement_percent}% • Avg: ₹${p.average_package}L • Highest: ₹${p.highest_package}L • Companies: ${p.companies_visited || 'N/A'}`}
                                             onDelete={() => deletePlacement(p.id)}
+                                            isDeleting={deletingItem === p.id}
                                         />
                                     ))}
                                 </div>
                             )}
                         </SectionCard>
 
-                        {/* Rankings & Certifications Section */}
-                        <SectionCard
-                            title="Rankings & Certifications"
-                            onAdd={() => setShowRankingForm(!showRankingForm)}
-                            addLabel="Add"
-                        >
+                        {/* RANKINGS SECTION */}
+                        <SectionCard title="Rankings & Certifications" onAdd={() => setShowRankingForm(!showRankingForm)}>
                             {showRankingForm && (
                                 <FormContainer onSubmit={addRanking}>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <Label className="text-sm font-medium text-gray-700">Ranking Body *</Label>
+                                            <Label>Ranking Body *</Label>
                                             <Input
                                                 required
                                                 value={rankingForm.ranking_body}
@@ -716,7 +900,7 @@ export default function CollegeProfile() {
                                             />
                                         </div>
                                         <div>
-                                            <Label className="text-sm font-medium text-gray-700">Rank / Grade</Label>
+                                            <Label>Rank / Grade</Label>
                                             <Input
                                                 value={rankingForm.rank_value}
                                                 onChange={(e) => setRankingForm({...rankingForm, rank_value: e.target.value})}
@@ -725,7 +909,7 @@ export default function CollegeProfile() {
                                             />
                                         </div>
                                         <div>
-                                            <Label className="text-sm font-medium text-gray-700">Year</Label>
+                                            <Label>Year</Label>
                                             <Input
                                                 type="number"
                                                 value={rankingForm.year}
@@ -735,7 +919,7 @@ export default function CollegeProfile() {
                                             />
                                         </div>
                                         <div>
-                                            <Label className="text-sm font-medium text-gray-700">Category</Label>
+                                            <Label>Category</Label>
                                             <Input
                                                 value={rankingForm.category}
                                                 onChange={(e) => setRankingForm({...rankingForm, category: e.target.value})}
@@ -744,7 +928,7 @@ export default function CollegeProfile() {
                                             />
                                         </div>
                                         <div className="sm:col-span-2">
-                                            <Label className="text-sm font-medium text-gray-700">Certificate URL (Optional)</Label>
+                                            <Label>Certificate URL (Optional)</Label>
                                             <Input
                                                 value={rankingForm.certificate_url}
                                                 onChange={(e) => setRankingForm({...rankingForm, certificate_url: e.target.value})}
@@ -756,19 +940,24 @@ export default function CollegeProfile() {
                                     <div className="flex gap-3 justify-end pt-2">
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                setShowRankingForm(false);
-                                                setRankingForm({ ranking_body: "", rank_value: "", year: "", category: "", certificate_url: "" });
-                                            }}
-                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
+                                            onClick={() => setShowRankingForm(false)}
+                                            disabled={addingRanking}
+                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
                                         >
                                             Cancel
                                         </button>
                                         <button
                                             type="submit"
-                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                                            disabled={addingRanking}
+                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
                                         >
-                                            Save
+                                            {addingRanking && (
+                                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            )}
+                                            {addingRanking ? "Saving..." : "Save"}
                                         </button>
                                     </div>
                                 </FormContainer>
@@ -792,104 +981,18 @@ export default function CollegeProfile() {
                                             description={r.category || null}
                                             link={r.certificate_url ? { url: r.certificate_url, text: "View Certificate" } : null}
                                             onDelete={() => deleteRanking(r.id)}
+                                            isDeleting={deletingItem === r.id}
                                         />
                                     ))}
                                 </div>
                             )}
                         </SectionCard>
-
-                        {/* HOD Contact Section */}
-                        <SectionCard
-                            title="HOD Contact"
-                            onAdd={() => setEditingHOD(!editingHOD)}
-                            addLabel="Edit"
-                        >
-                            {editingHOD ? (
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label className="text-sm font-medium text-gray-700">Name</Label>
-                                            <Input
-                                                value={college.hod_name}
-                                                onChange={(e) => setCollege({...college, hod_name: e.target.value})}
-                                                placeholder="HOD Name"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-sm font-medium text-gray-700">Designation</Label>
-                                            <Input
-                                                value={college.hod_designation}
-                                                onChange={(e) => setCollege({...college, hod_designation: e.target.value})}
-                                                placeholder="Head of Department"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-sm font-medium text-gray-700">Email</Label>
-                                            <Input
-                                                type="email"
-                                                value={college.hod_email}
-                                                onChange={(e) => setCollege({...college, hod_email: e.target.value})}
-                                                placeholder="hod@college.edu"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label className="text-sm font-medium text-gray-700">Phone</Label>
-                                            <Input
-                                                value={college.hod_phone}
-                                                onChange={(e) => setCollege({...college, hod_phone: e.target.value})}
-                                                placeholder="+91 XXXXX XXXXX"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-3 justify-end pt-2">
-                                        <button
-                                            onClick={() => setEditingHOD(false)}
-                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={updateCollege}
-                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                                        >
-                                            Save
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-3 text-gray-700">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <p className="text-xs text-gray-500">Name</p>
-                                            <p className="font-medium">{college.hod_name || "Not specified"}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-gray-500">Designation</p>
-                                            <p className="font-medium">{college.hod_designation || "Not specified"}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-gray-500">Email</p>
-                                            <p className="font-medium break-all">{college.hod_email || "Not specified"}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-gray-500">Phone</p>
-                                            <p className="font-medium">{college.hod_phone || "Not specified"}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </SectionCard>
                     </div>
 
-                    {/* Right Column - Sidebar */}
+                    {/* RIGHT COLUMN - SIDEBAR */}
                     <div className="space-y-6">
                         {/* QR Code Card */}
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <h3 className="font-semibold text-gray-900 mb-4">Student Referral QR</h3>
+                        <SectionCard title="Student Referral QR">
                             {qrLoading ? (
                                 <div className="flex justify-center py-8">
                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -923,40 +1026,45 @@ export default function CollegeProfile() {
                                     Complete your profile to generate QR code
                                 </p>
                             )}
-                        </div>
+                        </SectionCard>
 
-                        {/* Profile Language Card */}
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="font-semibold text-gray-900">Profile language</h3>
-                                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <p className="text-sm text-gray-700">English</p>
-                        </div>
-
-                        {/* Public Profile URL Card */}
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="font-semibold text-gray-900">Public profile & URL</h3>
-                                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <p className="text-sm text-gray-600 break-all">
-                                www.ccs.com/college/{displayName.toLowerCase().replace(/\s+/g, '-')}
-                            </p>
-                        </div>
+                        {/* Quick Info Card */}
+                        {college.established_year && (
+                            <SectionCard title="Quick Info">
+                                <div className="space-y-3 text-sm">
+                                    {college.established_year && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Established</span>
+                                            <span className="font-medium text-gray-900">{college.established_year}</span>
+                                        </div>
+                                    )}
+                                    {college.accreditation && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Accreditation</span>
+                                            <span className="font-medium text-gray-900">{college.accreditation}</span>
+                                        </div>
+                                    )}
+                                    {college.website_url && (
+                                        <div className="pt-2 border-t">
+                                            <a
+                                                href={college.website_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                            >
+                                                Visit Website
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                            </a>
+                                        </div>
+                                    )}
+                                </div>
+                            </SectionCard>
+                        )}
                     </div>
                 </div>
             </div>
         </div>
     );
 }
-
-

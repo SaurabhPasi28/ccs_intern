@@ -3,12 +3,14 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { toast } from "sonner";
 import { STATES_AND_CITIES } from "../data/statesAndCities";
-import { SectionCard } from "../customreuse/SectionCard";
+import { 
+    ProfileHeader, 
+    SectionCard, 
+    FormContainer, 
+    EmptyState, 
+    LoadingSpinner 
+} from "../customreuse";
 import { ItemCard } from "../customreuse/ItemCard";
-import { FormContainer } from "../customreuse/FormContainer";
-import { EmptyState } from "../customreuse/EmptyState";
-import { LoadingSpinner } from "../customreuse/LoadingSpinner";
-import { ProfileHeader } from "../customreuse/ProfileHeader";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -22,13 +24,83 @@ const FACILITY_OPTIONS = [
 const ACHIEVEMENT_TYPES = ["Academic", "Sports", "Cultural", "Science & Technology", "Social Service", "Other"];
 const GRADE_LEVEL_RESULTS = ["10th Grade", "12th Grade", "8th Grade"];
 
+// Helper component for displaying information
+function InfoItem({ label, value, icon }) {
+    const renderValue = () => {
+        if (!value) return <span className="text-gray-400">Not specified</span>;
+        
+        if (icon === 'email') {
+            return (
+                <a href={`mailto:${value}`} className="text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                    {value}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                </a>
+            );
+        }
+        
+        if (icon === 'phone') {
+            return (
+                <a href={`tel:${value}`} className="text-blue-600 hover:text-blue-700">
+                    {value}
+                </a>
+            );
+        }
+        
+        if (icon === 'link') {
+            return (
+                <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                    {value}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                </a>
+            );
+        }
+        
+        return <span className="text-gray-900 font-medium">{value}</span>;
+    };
+
+    return (
+        <div className="flex flex-col">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</span>
+            {renderValue()}
+        </div>
+    );
+}
+
+// Helper component for sidebar info display
+function InfoDisplay({ icon, label, value }) {
+    return (
+        <div className="flex items-start gap-3">
+            <div className="mt-0.5">{icon}</div>
+            <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">{label}</p>
+                <p className="text-sm text-gray-900 font-medium break-words">{value}</p>
+            </div>
+        </div>
+    );
+}
+
 export default function SchoolProfile() {
     const token = localStorage.getItem("token");
     const [loading, setLoading] = useState(true);
     const [displayName, setDisplayName] = useState("Your School");
     const [showEditMenu, setShowEditMenu] = useState(false);
-    const [editingIntro, setEditingIntro] = useState(false);
-    const [mediaUploading, setMediaUploading] = useState(false);
+
+    // Loading states
+    const [savingSchool, setSavingSchool] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState({ profile: false, banner: false });
+    const [addingFacility, setAddingFacility] = useState(false);
+    const [addingProgram, setAddingProgram] = useState(false);
+    const [addingAchievement, setAddingAchievement] = useState(false);
+    const [addingResult, setAddingResult] = useState(false);
+    const [deletingItem, setDeletingItem] = useState(null);
+
+    // Edit modes
+    const [editingSchool, setEditingSchool] = useState(false);
+    const [originalSchool, setOriginalSchool] = useState({});
 
     const [school, setSchool] = useState({
         name: "", established_year: "", board: "", affiliation: "", school_type: "",
@@ -70,6 +142,7 @@ export default function SchoolProfile() {
             if (res.ok) {
                 if (data.school) {
                     setSchool(data.school);
+                    setOriginalSchool(data.school);
                     setDisplayName(data.school.name || "Your School");
                 }
                 setFacilities(data.facilities || []);
@@ -84,7 +157,20 @@ export default function SchoolProfile() {
         }
     };
 
+    const startEditingSchool = () => {
+        setOriginalSchool({ ...school });
+        setEditingSchool(true);
+    };
+
+    const cancelEditSchool = () => {
+        setSchool(originalSchool);
+        setEditingSchool(false);
+    };
+
     const updateSchool = async () => {
+        if (savingSchool) return;
+        
+        setSavingSchool(true);
         try {
             const res = await fetch(`${API_URL}/api/school`, {
                 method: "PUT",
@@ -95,20 +181,26 @@ export default function SchoolProfile() {
                 body: JSON.stringify(school),
             });
             if (res.ok) {
+                const data = await res.json();
                 toast.success("School information updated!");
-                setEditingIntro(false);
-                fetchSchoolProfile();
+                setSchool(data.school || school);
+                setOriginalSchool(data.school || school);
+                setDisplayName(data.school?.name || school.name || "Your School");
+                setEditingSchool(false);
             } else {
                 toast.error("Failed to update");
             }
         } catch (err) {
             toast.error("Failed to update");
+        } finally {
+            setSavingSchool(false);
         }
     };
 
     const handleImageUpload = async (file, type) => {
         if (!file) return;
-        setMediaUploading(true);
+        
+        setUploadingImage(prev => ({ ...prev, [type]: true }));
         try {
             const formData = new FormData();
             formData.append(type === 'profile' ? 'logoImage' : 'bannerImage', file);
@@ -128,7 +220,7 @@ export default function SchoolProfile() {
         } catch (err) {
             toast.error("Failed to upload");
         } finally {
-            setMediaUploading(false);
+            setUploadingImage(prev => ({ ...prev, [type]: false }));
         }
     };
 
@@ -139,6 +231,9 @@ export default function SchoolProfile() {
 
     const addFacility = async (e) => {
         e.preventDefault();
+        if (addingFacility) return;
+        
+        setAddingFacility(true);
         try {
             const res = await fetch(`${API_URL}/api/school/facilities`, {
                 method: "POST",
@@ -159,10 +254,15 @@ export default function SchoolProfile() {
             }
         } catch (err) {
             toast.error("Failed to add facility");
+        } finally {
+            setAddingFacility(false);
         }
     };
 
     const deleteFacility = async (id) => {
+        if (deletingItem) return;
+        
+        setDeletingItem(id);
         try {
             const res = await fetch(`${API_URL}/api/school/facilities/${id}`, {
                 method: "DELETE",
@@ -174,11 +274,16 @@ export default function SchoolProfile() {
             }
         } catch (err) {
             toast.error("Failed to delete");
+        } finally {
+            setDeletingItem(null);
         }
     };
 
     const addProgram = async (e) => {
         e.preventDefault();
+        if (addingProgram) return;
+        
+        setAddingProgram(true);
         try {
             const res = await fetch(`${API_URL}/api/school/programs`, {
                 method: "POST",
@@ -198,10 +303,15 @@ export default function SchoolProfile() {
             }
         } catch (err) {
             toast.error("Failed to add program");
+        } finally {
+            setAddingProgram(false);
         }
     };
 
     const deleteProgram = async (id) => {
+        if (deletingItem) return;
+        
+        setDeletingItem(id);
         try {
             const res = await fetch(`${API_URL}/api/school/programs/${id}`, {
                 method: "DELETE",
@@ -213,11 +323,16 @@ export default function SchoolProfile() {
             }
         } catch (err) {
             toast.error("Failed to delete");
+        } finally {
+            setDeletingItem(null);
         }
     };
 
     const addAchievement = async (e) => {
         e.preventDefault();
+        if (addingAchievement) return;
+        
+        setAddingAchievement(true);
         try {
             const res = await fetch(`${API_URL}/api/school/achievements`, {
                 method: "POST",
@@ -237,10 +352,15 @@ export default function SchoolProfile() {
             }
         } catch (err) {
             toast.error("Failed to add achievement");
+        } finally {
+            setAddingAchievement(false);
         }
     };
 
     const deleteAchievement = async (id) => {
+        if (deletingItem) return;
+        
+        setDeletingItem(id);
         try {
             const res = await fetch(`${API_URL}/api/school/achievements/${id}`, {
                 method: "DELETE",
@@ -252,11 +372,16 @@ export default function SchoolProfile() {
             }
         } catch (err) {
             toast.error("Failed to delete");
+        } finally {
+            setDeletingItem(null);
         }
     };
 
     const addResult = async (e) => {
         e.preventDefault();
+        if (addingResult) return;
+        
+        setAddingResult(true);
         try {
             const res = await fetch(`${API_URL}/api/school/results`, {
                 method: "POST",
@@ -279,10 +404,15 @@ export default function SchoolProfile() {
             }
         } catch (err) {
             toast.error("Failed to add result");
+        } finally {
+            setAddingResult(false);
         }
     };
 
     const deleteResult = async (id) => {
+        if (deletingItem) return;
+        
+        setDeletingItem(id);
         try {
             const res = await fetch(`${API_URL}/api/school/results/${id}`, {
                 method: "DELETE",
@@ -294,6 +424,8 @@ export default function SchoolProfile() {
             }
         } catch (err) {
             toast.error("Failed to delete");
+        } finally {
+            setDeletingItem(null);
         }
     };
 
@@ -303,9 +435,9 @@ export default function SchoolProfile() {
         <div className="min-h-screen bg-gray-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Column - Main Content */}
+                    {/* LEFT COLUMN - MAIN CONTENT */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Profile Header */}
+                        {/* HEADER with ProfileHeader component */}
                         <ProfileHeader
                             profile={school}
                             displayName={displayName}
@@ -314,7 +446,8 @@ export default function SchoolProfile() {
                             setShowEditMenu={setShowEditMenu}
                             handleImageUpload={handleImageUpload}
                             clearImages={clearImages}
-                            setEditingIntro={setEditingIntro}
+                            setEditingIntro={startEditingSchool}
+                            uploadingImage={uploadingImage}
                         >
                             <p className="text-base text-gray-600 mt-2">
                                 {school.board ? `${school.board} Affiliated` : "Educational Institution"}
@@ -329,151 +462,233 @@ export default function SchoolProfile() {
                             </div>
                         </ProfileHeader>
 
-                        {/* Edit Intro Form */}
-                        {editingIntro && (
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 className="font-semibold text-lg mb-4 text-gray-900">Edit School Information</h3>
-                                <div className="space-y-4">
-                                    <div>
-                                        <Label>School Name *</Label>
-                                        <Input
-                                            value={school.name}
-                                            onChange={(e) => setSchool({ ...school, name: e.target.value })}
-                                            placeholder="Enter school name"
-                                            className="mt-1.5"
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* SCHOOL INFORMATION SECTION */}
+                        <SectionCard 
+                            title="School Information" 
+                            onAdd={editingSchool ? null : startEditingSchool}
+                            addLabel="Edit"
+                        >
+                            {editingSchool ? (
+                                <FormContainer>
+                                    <div className="space-y-4">
                                         <div>
-                                            <Label>Board</Label>
-                                            <select
-                                                value={school.board}
-                                                onChange={(e) => setSchool({ ...school, board: e.target.value })}
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5"
-                                            >
-                                                <option value="">Select board</option>
-                                                {BOARD_OPTIONS.map((board) => (
-                                                    <option key={board} value={board}>{board}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <Label>School Type</Label>
-                                            <select
-                                                value={school.school_type}
-                                                onChange={(e) => setSchool({ ...school, school_type: e.target.value })}
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5"
-                                            >
-                                                <option value="">Select type</option>
-                                                {SCHOOL_TYPES.map((type) => (
-                                                    <option key={type} value={type}>{type}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label>Established Year</Label>
+                                            <Label>School Name *</Label>
                                             <Input
-                                                type="number"
-                                                value={school.established_year}
-                                                onChange={(e) => setSchool({ ...school, established_year: e.target.value })}
-                                                placeholder="e.g., 2000"
+                                                value={school.name}
+                                                onChange={(e) => setSchool({ ...school, name: e.target.value })}
+                                                placeholder="Enter school name"
                                                 className="mt-1.5"
                                             />
                                         </div>
-                                        <div>
-                                            <Label>Grade Levels</Label>
-                                            <select
-                                                value={school.grade_levels}
-                                                onChange={(e) => setSchool({ ...school, grade_levels: e.target.value })}
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5"
-                                            >
-                                                <option value="">Select grade levels</option>
-                                                {GRADE_LEVELS_OPTIONS.map((level) => (
-                                                    <option key={level} value={level}>{level}</option>
-                                                ))}
-                                            </select>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <Label>Board</Label>
+                                                <select
+                                                    value={school.board}
+                                                    onChange={(e) => setSchool({ ...school, board: e.target.value })}
+                                                    className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5"
+                                                >
+                                                    <option value="">Select board</option>
+                                                    {BOARD_OPTIONS.map((board) => (
+                                                        <option key={board} value={board}>{board}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <Label>School Type</Label>
+                                                <select
+                                                    value={school.school_type}
+                                                    onChange={(e) => setSchool({ ...school, school_type: e.target.value })}
+                                                    className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5"
+                                                >
+                                                    <option value="">Select type</option>
+                                                    {SCHOOL_TYPES.map((type) => (
+                                                        <option key={type} value={type}>{type}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label>State</Label>
-                                            <select
-                                                value={school.state}
-                                                onChange={(e) => setSchool({ ...school, state: e.target.value, city: "" })}
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5"
-                                            >
-                                                <option value="">Select state</option>
-                                                {Object.keys(STATES_AND_CITIES).map((state) => (
-                                                    <option key={state} value={state}>{state}</option>
-                                                ))}
-                                            </select>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <Label>Established Year</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={school.established_year}
+                                                    onChange={(e) => setSchool({ ...school, established_year: e.target.value })}
+                                                    placeholder="e.g., 2000"
+                                                    className="mt-1.5"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label>Grade Levels</Label>
+                                                <select
+                                                    value={school.grade_levels}
+                                                    onChange={(e) => setSchool({ ...school, grade_levels: e.target.value })}
+                                                    className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5"
+                                                >
+                                                    <option value="">Select grade levels</option>
+                                                    {GRADE_LEVELS_OPTIONS.map((level) => (
+                                                        <option key={level} value={level}>{level}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <Label>State</Label>
+                                                <select
+                                                    value={school.state}
+                                                    onChange={(e) => setSchool({ ...school, state: e.target.value, city: "" })}
+                                                    className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5"
+                                                >
+                                                    <option value="">Select state</option>
+                                                    {Object.keys(STATES_AND_CITIES).map((state) => (
+                                                        <option key={state} value={state}>{state}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <Label>City</Label>
+                                                <select
+                                                    value={school.city}
+                                                    onChange={(e) => setSchool({ ...school, city: e.target.value })}
+                                                    disabled={!school.state}
+                                                    className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 disabled:bg-gray-100"
+                                                >
+                                                    <option value="">Select city</option>
+                                                    {school.state && STATES_AND_CITIES[school.state]?.map((city) => (
+                                                        <option key={city} value={city}>{city}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <Label>Phone</Label>
+                                                <Input
+                                                    value={school.phone}
+                                                    onChange={(e) => setSchool({ ...school, phone: e.target.value })}
+                                                    placeholder="School phone number"
+                                                    className="mt-1.5"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label>Email</Label>
+                                                <Input
+                                                    type="email"
+                                                    value={school.email}
+                                                    onChange={(e) => setSchool({ ...school, email: e.target.value })}
+                                                    placeholder="School email"
+                                                    className="mt-1.5"
+                                                />
+                                            </div>
                                         </div>
                                         <div>
-                                            <Label>City</Label>
-                                            <select
-                                                value={school.city}
-                                                onChange={(e) => setSchool({ ...school, city: e.target.value })}
-                                                disabled={!school.state}
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 disabled:bg-gray-100"
-                                            >
-                                                <option value="">Select city</option>
-                                                {school.state && STATES_AND_CITIES[school.state]?.map((city) => (
-                                                    <option key={city} value={city}>{city}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label>Phone</Label>
+                                            <Label>Website URL</Label>
                                             <Input
-                                                value={school.phone}
-                                                onChange={(e) => setSchool({ ...school, phone: e.target.value })}
-                                                placeholder="School phone number"
+                                                value={school.website_url}
+                                                onChange={(e) => setSchool({ ...school, website_url: e.target.value })}
+                                                placeholder="https://www.yourschool.edu"
                                                 className="mt-1.5"
                                             />
                                         </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <Label>Student Strength</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={school.student_strength}
+                                                    onChange={(e) => setSchool({ ...school, student_strength: e.target.value })}
+                                                    placeholder="Total students"
+                                                    className="mt-1.5"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label>Teacher Count</Label>
+                                                <Input
+                                                    type="number"
+                                                    value={school.teacher_count}
+                                                    onChange={(e) => setSchool({ ...school, teacher_count: e.target.value })}
+                                                    placeholder="Total teachers"
+                                                    className="mt-1.5"
+                                                />
+                                            </div>
+                                        </div>
                                         <div>
-                                            <Label>Email</Label>
+                                            <Label>Principal Name</Label>
                                             <Input
-                                                type="email"
-                                                value={school.email}
-                                                onChange={(e) => setSchool({ ...school, email: e.target.value })}
-                                                placeholder="School email"
+                                                value={school.principal_name}
+                                                onChange={(e) => setSchool({ ...school, principal_name: e.target.value })}
+                                                placeholder="Principal's name"
                                                 className="mt-1.5"
                                             />
                                         </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <Label>Principal Email</Label>
+                                                <Input
+                                                    type="email"
+                                                    value={school.principal_email}
+                                                    onChange={(e) => setSchool({ ...school, principal_email: e.target.value })}
+                                                    placeholder="Principal's email"
+                                                    className="mt-1.5"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label>Principal Phone</Label>
+                                                <Input
+                                                    value={school.principal_phone}
+                                                    onChange={(e) => setSchool({ ...school, principal_phone: e.target.value })}
+                                                    placeholder="Principal's phone"
+                                                    className="mt-1.5"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3 justify-end pt-2">
+                                            <button
+                                                onClick={cancelEditSchool}
+                                                disabled={savingSchool}
+                                                className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={updateSchool}
+                                                disabled={savingSchool}
+                                                className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
+                                            >
+                                                {savingSchool && (
+                                                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                )}
+                                                {savingSchool ? "Saving..." : "Save Changes"}
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <Label>Website URL</Label>
-                                        <Input
-                                            value={school.website_url}
-                                            onChange={(e) => setSchool({ ...school, website_url: e.target.value })}
-                                            placeholder="https://www.yourschool.edu"
-                                            className="mt-1.5"
-                                        />
-                                    </div>
-                                    <div className="flex gap-3 justify-end pt-2">
-                                        <button
-                                            onClick={() => setEditingIntro(false)}
-                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={updateSchool}
-                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
-                                        >
-                                            Save
-                                        </button>
-                                    </div>
+                                </FormContainer>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                                    <InfoItem label="School Name" value={school.name} />
+                                    <InfoItem label="Board" value={school.board} />
+                                    <InfoItem label="School Type" value={school.school_type} />
+                                    <InfoItem label="Established" value={school.established_year} />
+                                    <InfoItem label="Grade Levels" value={school.grade_levels} />
+                                    <InfoItem label="Location" value={school.city && school.state ? `${school.city}, ${school.state}` : null} />
+                                    <InfoItem label="Phone" value={school.phone} icon="phone" />
+                                    <InfoItem label="Email" value={school.email} icon="email" />
+                                    <InfoItem label="Website" value={school.website_url} icon="link" />
+                                    <InfoItem label="Student Strength" value={school.student_strength} />
+                                    <InfoItem label="Teacher Count" value={school.teacher_count} />
+                                    <InfoItem label="Principal" value={school.principal_name} />
+                                    <InfoItem label="Principal Email" value={school.principal_email} icon="email" />
+                                    <InfoItem label="Principal Phone" value={school.principal_phone} icon="phone" />
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </SectionCard>
 
-                        {/* Programs Section - Continued in next part due to length */}
+                        {/* PROGRAMS SECTION */}
                         <SectionCard title="Programs & Activities" onAdd={() => setShowProgramForm(!showProgramForm)}>
                             {showProgramForm && (
                                 <FormContainer onSubmit={addProgram}>
@@ -497,8 +712,27 @@ export default function SchoolProfile() {
                                         />
                                     </div>
                                     <div className="flex gap-3 justify-end">
-                                        <button type="button" onClick={() => setShowProgramForm(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg">Cancel</button>
-                                        <button type="submit" className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Save</button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowProgramForm(false)} 
+                                            disabled={addingProgram}
+                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button 
+                                            type="submit" 
+                                            disabled={addingProgram}
+                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
+                                        >
+                                            {addingProgram && (
+                                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            )}
+                                            {addingProgram ? "Saving..." : "Save"}
+                                        </button>
                                     </div>
                                 </FormContainer>
                             )}
@@ -514,13 +748,14 @@ export default function SchoolProfile() {
                                             title={prog.program_name}
                                             description={prog.description}
                                             onDelete={() => deleteProgram(prog.id)}
+                                            isDeleting={deletingItem === prog.id}
                                         />
                                     ))}
                                 </div>
                             )}
                         </SectionCard>
 
-                        {/* Achievements Section */}
+                        {/* ACHIEVEMENTS SECTION */}
                         <SectionCard title="Achievements" onAdd={() => setShowAchievementForm(!showAchievementForm)}>
                             {showAchievementForm && (
                                 <FormContainer onSubmit={addAchievement}>
@@ -569,8 +804,27 @@ export default function SchoolProfile() {
                                         />
                                     </div>
                                     <div className="flex gap-3 justify-end">
-                                        <button type="button" onClick={() => setShowAchievementForm(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg">Cancel</button>
-                                        <button type="submit" className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Save</button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowAchievementForm(false)} 
+                                            disabled={addingAchievement}
+                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button 
+                                            type="submit" 
+                                            disabled={addingAchievement}
+                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
+                                        >
+                                            {addingAchievement && (
+                                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            )}
+                                            {addingAchievement ? "Saving..." : "Save"}
+                                        </button>
                                     </div>
                                 </FormContainer>
                             )}
@@ -588,13 +842,14 @@ export default function SchoolProfile() {
                                             period={ach.year ? `Year ${ach.year}` : null}
                                             description={ach.description}
                                             onDelete={() => deleteAchievement(ach.id)}
+                                            isDeleting={deletingItem === ach.id}
                                         />
                                     ))}
                                 </div>
                             )}
                         </SectionCard>
 
-                        {/* Results Section */}
+                        {/* RESULTS SECTION */}
                         <SectionCard title="Academic Results" onAdd={() => setShowResultForm(!showResultForm)}>
                             {showResultForm && (
                                 <FormContainer onSubmit={addResult}>
@@ -658,8 +913,27 @@ export default function SchoolProfile() {
                                         </div>
                                     </div>
                                     <div className="flex gap-3 justify-end">
-                                        <button type="button" onClick={() => setShowResultForm(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg">Cancel</button>
-                                        <button type="submit" className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Save</button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowResultForm(false)} 
+                                            disabled={addingResult}
+                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button 
+                                            type="submit" 
+                                            disabled={addingResult}
+                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
+                                        >
+                                            {addingResult && (
+                                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            )}
+                                            {addingResult ? "Saving..." : "Save"}
+                                        </button>
                                     </div>
                                 </FormContainer>
                             )}
@@ -675,13 +949,14 @@ export default function SchoolProfile() {
                                             title={`${res.grade_level} Results - ${res.academic_year}`}
                                             description={`Pass Rate: ${res.pass_percentage}% • Distinctions: ${res.distinction_count || 0} • First Class: ${res.first_class_count || 0}`}
                                             onDelete={() => deleteResult(res.id)}
+                                            isDeleting={deletingItem === res.id}
                                         />
                                     ))}
                                 </div>
                             )}
                         </SectionCard>
 
-                        {/* Facilities Section */}
+                        {/* FACILITIES SECTION */}
                         <SectionCard title="Facilities" onAdd={() => setShowFacilityForm(!showFacilityForm)}>
                             {showFacilityForm && (
                                 <FormContainer onSubmit={addFacility}>
@@ -700,8 +975,27 @@ export default function SchoolProfile() {
                                         </select>
                                     </div>
                                     <div className="flex gap-3 justify-end">
-                                        <button type="button" onClick={() => setShowFacilityForm(false)} className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg">Cancel</button>
-                                        <button type="submit" className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Add</button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowFacilityForm(false)} 
+                                            disabled={addingFacility}
+                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button 
+                                            type="submit" 
+                                            disabled={addingFacility}
+                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
+                                        >
+                                            {addingFacility && (
+                                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            )}
+                                            {addingFacility ? "Adding..." : "Add"}
+                                        </button>
                                     </div>
                                 </FormContainer>
                             )}
@@ -717,11 +1011,19 @@ export default function SchoolProfile() {
                                             <span className="text-sm font-medium text-blue-900">{fac.facility_name}</span>
                                             <button
                                                 onClick={() => deleteFacility(fac.id)}
-                                                className="text-blue-700 hover:text-blue-900 opacity-70 group-hover:opacity-100"
+                                                disabled={deletingItem === fac.id}
+                                                className="text-blue-700 hover:text-blue-900 opacity-70 group-hover:opacity-100 disabled:opacity-50"
                                             >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
+                                                {deletingItem === fac.id ? (
+                                                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                ) : (
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                )}
                                             </button>
                                         </div>
                                     ))}
@@ -730,37 +1032,44 @@ export default function SchoolProfile() {
                         </SectionCard>
                     </div>
 
-                    {/* Right Column - Sidebar */}
+                    {/* RIGHT COLUMN - SIDEBAR */}
                     <div className="space-y-6">
-                        {/* Quick Info Card */}
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <h3 className="font-semibold text-gray-900 mb-4">Quick Info</h3>
-                            <div className="space-y-3 text-sm">
-                                {school.established_year && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Established</span>
-                                        <span className="font-medium text-gray-900">{school.established_year}</span>
-                                    </div>
-                                )}
-                                {school.student_strength && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Students</span>
-                                        <span className="font-medium text-gray-900">{school.student_strength}</span>
-                                    </div>
-                                )}
-                                {school.teacher_count && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Teachers</span>
-                                        <span className="font-medium text-gray-900">{school.teacher_count}</span>
-                                    </div>
-                                )}
+                        <SectionCard title="Quick Info">
+                            <div className="space-y-4">
+                                <InfoDisplay 
+                                    icon={
+                                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    }
+                                    label="Established"
+                                    value={school.established_year || "Not specified"}
+                                />
+                                <InfoDisplay 
+                                    icon={
+                                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                    }
+                                    label="Students"
+                                    value={school.student_strength || "Not specified"}
+                                />
+                                <InfoDisplay 
+                                    icon={
+                                        <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                    }
+                                    label="Teachers"
+                                    value={school.teacher_count || "Not specified"}
+                                />
                                 {school.website_url && (
                                     <div className="pt-2 border-t">
                                         <a
                                             href={school.website_url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                            className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-sm font-medium"
                                         >
                                             Visit Website
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -770,20 +1079,24 @@ export default function SchoolProfile() {
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        </SectionCard>
 
-                        {/* Principal Info */}
                         {school.principal_name && (
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 className="font-semibold text-gray-900 mb-4">Principal</h3>
-                                <p className="text-sm font-medium text-gray-900">{school.principal_name}</p>
-                                {school.principal_email && (
-                                    <p className="text-sm text-gray-600 mt-1">{school.principal_email}</p>
-                                )}
-                                {school.principal_phone && (
-                                    <p className="text-sm text-gray-600 mt-1">{school.principal_phone}</p>
-                                )}
-                            </div>
+                            <SectionCard title="Principal">
+                                <div className="space-y-2">
+                                    <p className="text-sm font-semibold text-gray-900">{school.principal_name}</p>
+                                    {school.principal_email && (
+                                        <a href={`mailto:${school.principal_email}`} className="text-sm text-blue-600 hover:text-blue-700 block">
+                                            {school.principal_email}
+                                        </a>
+                                    )}
+                                    {school.principal_phone && (
+                                        <a href={`tel:${school.principal_phone}`} className="text-sm text-blue-600 hover:text-blue-700 block">
+                                            {school.principal_phone}
+                                        </a>
+                                    )}
+                                </div>
+                            </SectionCard>
                         )}
                     </div>
                 </div>
