@@ -69,25 +69,91 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
     try {
         const userId = req.userId;
-        const { state, city, bio, dob } = req.body;
+        const { state, city, bio, dob, phone, headline, address, zipcode } = req.body;
 
         const result = await pool.query(
-            `INSERT INTO profiles (user_id, state, city, dob, bio, updated_at)
-             VALUES ($1, $2, $3, $4, $5, NOW())
+            `INSERT INTO profiles (user_id, state, city, address, zipcode, dob, phone, bio, headline, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
              ON CONFLICT (user_id)
              DO UPDATE SET
                state = $2,
                city = $3,
-               dob = $4,
-               bio = $5,
+               address = $4,
+               zipcode = $5,
+               dob = $6,
+               phone = $7,
+               bio = $8,
+               headline = $9,
                updated_at = NOW()
              RETURNING *`,
-            [userId, state, city, dob || null, bio]
+            [userId, state, city, address || null, zipcode || null, dob || null, phone || null, bio, headline || null]
         );
 
         res.json({ message: "Profile updated", profile: result.rows[0] });
     } catch (err) {
         console.error("UPDATE PROFILE ERROR:", err.message);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+/* =============================
+   WELCOME - COMPLETE INITIAL PROFILE
+============================= */
+exports.completeWelcome = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { state, city, address, zipcode, phone } = req.body;
+
+        // Validate required fields
+        if (!state || !city || !address || !zipcode || !phone) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
+
+        const result = await pool.query(
+            `INSERT INTO profiles (user_id, state, city, address, zipcode, phone, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, NOW())
+             ON CONFLICT (user_id)
+             DO UPDATE SET
+               state = $2,
+               city = $3,
+               address = $4,
+               zipcode = $5,
+               phone = $6,
+               updated_at = NOW()
+             RETURNING *`,
+            [userId, state, city, address, zipcode, phone]
+        );
+
+        res.json({ message: "Welcome completed", profile: result.rows[0] });
+    } catch (err) {
+        console.error("WELCOME COMPLETE ERROR:", err.message);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+/* =============================
+   CHECK IF WELCOME IS NEEDED
+============================= */
+exports.checkWelcomeStatus = async (req, res) => {
+    try {
+        const userId = req.userId;
+
+        const result = await pool.query(
+            "SELECT state, city, address, zipcode, phone FROM profiles WHERE user_id = $1",
+            [userId]
+        );
+
+        // If no profile exists or any required field is missing, welcome is needed
+        if (result.rows.length === 0) {
+            return res.json({ needsWelcome: true });
+        }
+
+        const profile = result.rows[0];
+        const needsWelcome = !profile.state || !profile.city || !profile.address || !profile.zipcode || !profile.phone;
+
+        res.json({ needsWelcome });
+    } catch (err) {
+        console.error("CHECK WELCOME STATUS ERROR:", err.message);
         res.status(500).json({ message: "Server error" });
     }
 };

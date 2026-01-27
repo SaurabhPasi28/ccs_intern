@@ -286,9 +286,20 @@ export default function Login() {
 
       localStorage.setItem("token", token);
       localStorage.setItem("user_type", user.user_type);
+      localStorage.setItem("userType", user.user_type);
 
-      toast.success("Welcome back 🎉");
-      navigate("/dashboard");
+      // Check if welcome screen is needed
+      const welcomeCheck = await axios.get(`${API_URL}/welcome/status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (welcomeCheck.data.needsWelcome) {
+        toast.success("Welcome! Let's complete your profile");
+        navigate("/welcome");
+      } else {
+        toast.success("Welcome back 🎉");
+        navigate("/dashboard");
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || "Login failed");
     } finally {

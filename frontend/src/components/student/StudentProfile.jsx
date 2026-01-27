@@ -38,7 +38,7 @@ export default function StudentProfile() {
     const navigate = useNavigate();
     const [displayName, setDisplayName] = useState("Your profile");
     const [profile, setProfile] = useState({ 
-        state: "", city: "", dob: "", bio: "", profile_image_url: "", banner_image_url: "", headline: ""
+        state: "", city: "", dob: "", phone: "", bio: "", profile_image_url: "", banner_image_url: "", headline: ""
     });
     const [education, setEducation] = useState([]);
     const [experience, setExperience] = useState([]);
@@ -93,7 +93,7 @@ export default function StudentProfile() {
                 const p = data.profile || {};
                 setProfile({
                     state: p.state || "", city: p.city || "", dob: p.dob ? p.dob.substring(0, 10) : "",
-                    bio: p.bio || "", profile_image_url: p.profile_image_url || "",
+                    phone: p.phone || "", bio: p.bio || "", profile_image_url: p.profile_image_url || "",
                     banner_image_url: p.banner_image_url || "", headline: p.headline || ""
                 });
                 setDisplayName(data.full_name || "Your profile");
@@ -356,74 +356,78 @@ export default function StudentProfile() {
                             </div>
                         </ProfileHeader>
 
-                        {/* Edit Intro Form */}
-                        {editingIntro && (
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 className="font-semibold text-lg mb-4 text-gray-900">Edit Intro</h3>
-                                <div className="space-y-4">
-                                    <div>
-                                        <Label className="text-sm font-medium text-gray-700">Headline</Label>
-                                        <Input
-                                            value={profile.headline}
-                                            onChange={(e) => setProfile({...profile, headline: e.target.value})}
-                                            placeholder="e.g., Student at University | Aspiring Developer"
-                                            className="mt-1.5"
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label className="text-sm font-medium text-gray-700">State</Label>
-                                            <select
-                                                value={profile.state} 
-                                                onChange={(e) => setProfile({...profile, state: e.target.value, city: ""})}
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            >
-                                                <option value="">Select state</option>
-                                                {Object.keys(STATES_AND_CITIES).map((state) => (
-                                                    <option key={state} value={state}>{state}</option>
-                                                ))}
-                                            </select>
+                                {/* Edit Intro Form */}
+                                {editingIntro && (
+                                    <div className="mt-6 p-5 bg-gray-50 rounded-lg border border-gray-200">
+                                        <h3 className="font-semibold text-lg mb-4 text-gray-900">Edit Intro</h3>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <Label className="text-sm font-medium text-gray-700">Headline</Label>
+                                                <Input
+                                                    value={profile.headline}
+                                                    onChange={(e) => setProfile({...profile, headline: e.target.value})}
+                                                    placeholder="e.g., Student at University | Aspiring Developer"
+                                                    className="mt-1.5"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-sm font-medium text-gray-700">Phone Number</Label>
+                                                <Input
+                                                    type="tel"
+                                                    value={profile.phone}
+                                                    onChange={(e) => setProfile({...profile, phone: e.target.value})}
+                                                    placeholder="e.g., +91 9876543210"
+                                                    className="mt-1.5"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label className="text-sm font-medium text-gray-700">State</Label>
+                                                    <select
+                                                        value={profile.state} 
+                                                        onChange={(e) => setProfile({...profile, state: e.target.value, city: ""})}
+                                                        className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    >
+                                                        <option value="">Select state</option>
+                                                        {Object.keys(STATES_AND_CITIES).map((state) => (
+                                                            <option key={state} value={state}>{state}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <Label className="text-sm font-medium text-gray-700">City</Label>
+                                                    <select
+                                                        value={profile.city} 
+                                                        onChange={(e) => setProfile({...profile, city: e.target.value})}
+                                                        disabled={!profile.state}
+                                                        className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 disabled:bg-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    >
+                                                        <option value="">Select city</option>
+                                                        {profile.state && STATES_AND_CITIES[profile.state]?.map((city) => (
+                                                            <option key={city} value={city}>{city}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3 justify-end pt-2">
+                                                <button
+                                                    onClick={() => setEditingIntro(false)}
+                                                    className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={updateProfile}
+                                                    className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                                                >
+                                                    Save
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <Label className="text-sm font-medium text-gray-700">City</Label>
-                                            <select
-                                                value={profile.city} 
-                                                onChange={(e) => setProfile({...profile, city: e.target.value})}
-                                                disabled={!profile.state}
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 disabled:bg-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            >
-                                                <option value="">Select city</option>
-                                                {profile.state && STATES_AND_CITIES[profile.state]?.map((city) => (
-                                                    <option key={city} value={city}>{city}</option>
-                                                ))}
-                                            </select>
-                                        </div>
                                     </div>
-                                    <div className="flex gap-3 justify-end pt-2">
-                                        <button
-                                            onClick={() => setEditingIntro(false)}
-                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
-                                            disabled={savingProfile}
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={updateProfile}
-                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                            disabled={savingProfile}
-                                        >
-                                            {savingProfile && (
-                                                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                            )}
-                                            {savingProfile ? 'Saving...' : 'Save'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                                )}
+                    </div>
+               </div>
 
                         {/* About Section */}
                         <SectionCard
@@ -947,10 +951,8 @@ export default function StudentProfile() {
                         </p>
                     </SectionCard>
 
-                    </div>
-
-                </div>
             </div>
         </div>
     );
 }
+                                

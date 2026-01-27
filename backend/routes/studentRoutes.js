@@ -22,6 +22,8 @@ const {
    getStudentBasicInfo,
    applyJob,
    getAppliedJobs,
+   completeWelcome,
+   checkWelcomeStatus,
 } = studentController;
 
 /* =============================
@@ -33,6 +35,11 @@ router.get("/public/:id", getPublicProfile); // Public profile
    APPLY AUTH MIDDLEWARE ONCE
 ============================= */
 router.use(authMiddleware);
+
+/* =============================
+   WELCOME STATUS CHECK
+============================= */
+router.get("/welcome/status", checkWelcomeStatus);
 
 /* =============================
    PROFILE

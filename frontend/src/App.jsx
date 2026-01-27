@@ -62,6 +62,7 @@ import Login from "./components/Login";
 import VerifyEmail from "./components/VerifyEmail";
 import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
+import Welcome from "./components/Welcome";
 
 /* Dashboard */
 import Dashboard from "./components/Dashboard";
@@ -129,6 +130,16 @@ function App() {
         <Route path="/verify-email/:token" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+        {/* Welcome screen - After first login/signup */}
+        <Route
+          path="/welcome"
+          element={
+            <PrivateRoute>
+              <Welcome />
+            </PrivateRoute>
+          }
+        />
 
         {/*Bellow two are lines added by me */}
         {/* Public Company Profile - No Authentication Required */}
