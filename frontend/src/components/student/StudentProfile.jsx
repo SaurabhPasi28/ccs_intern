@@ -331,9 +331,10 @@ export default function StudentProfile() {
         <div className="min-h-screen bg-gray-50">
             {/* Main Container */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Column - Main Content */}
-                    <div className="lg:col-span-2 space-y-6">
+                {/* Top Section - Header and Info Cards */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    {/* Left Column - Profile Header */}
+                    <div className="lg:col-span-2">
                         {/* HEADER with ProfileHeader component */}
                         <ProfileHeader
                             profile={profile}
@@ -355,79 +356,98 @@ export default function StudentProfile() {
                                 <span>{profile.city && profile.state ? `${profile.city}, ${profile.state}` : "Add your location"}</span>
                             </div>
                         </ProfileHeader>
-
-                                {/* Edit Intro Form */}
-                                {editingIntro && (
-                                    <div className="mt-6 p-5 bg-gray-50 rounded-lg border border-gray-200">
-                                        <h3 className="font-semibold text-lg mb-4 text-gray-900">Edit Intro</h3>
-                                        <div className="space-y-4">
-                                            <div>
-                                                <Label className="text-sm font-medium text-gray-700">Headline</Label>
-                                                <Input
-                                                    value={profile.headline}
-                                                    onChange={(e) => setProfile({...profile, headline: e.target.value})}
-                                                    placeholder="e.g., Student at University | Aspiring Developer"
-                                                    className="mt-1.5"
-                                                />
-                                            </div>
-                                            <div>
-                                                <Label className="text-sm font-medium text-gray-700">Phone Number</Label>
-                                                <Input
-                                                    type="tel"
-                                                    value={profile.phone}
-                                                    onChange={(e) => setProfile({...profile, phone: e.target.value})}
-                                                    placeholder="e.g., +91 9876543210"
-                                                    className="mt-1.5"
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                <div>
-                                                    <Label className="text-sm font-medium text-gray-700">State</Label>
-                                                    <select
-                                                        value={profile.state} 
-                                                        onChange={(e) => setProfile({...profile, state: e.target.value, city: ""})}
-                                                        className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                    >
-                                                        <option value="">Select state</option>
-                                                        {Object.keys(STATES_AND_CITIES).map((state) => (
-                                                            <option key={state} value={state}>{state}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <Label className="text-sm font-medium text-gray-700">City</Label>
-                                                    <select
-                                                        value={profile.city} 
-                                                        onChange={(e) => setProfile({...profile, city: e.target.value})}
-                                                        disabled={!profile.state}
-                                                        className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 disabled:bg-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                    >
-                                                        <option value="">Select city</option>
-                                                        {profile.state && STATES_AND_CITIES[profile.state]?.map((city) => (
-                                                            <option key={city} value={city}>{city}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-3 justify-end pt-2">
-                                                <button
-                                                    onClick={() => setEditingIntro(false)}
-                                                    className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button
-                                                    onClick={updateProfile}
-                                                    className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                                                >
-                                                    Save
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                     </div>
-               </div>
+
+                    {/* Right Column - Info Cards */}
+                    <div className="space-y-6">
+                        {/* Profile Language Card */}
+                        <SectionCard title="Profile language">
+                            <p className="text-sm text-gray-700">English</p>
+                        </SectionCard>
+
+                        {/* Public Profile URL Card */}
+                        <SectionCard title="Public profile & URL">
+                            <p className="text-sm text-gray-600 break-all">
+                                www.ccs.com/in/{displayName.toLowerCase().replace(/\s+/g, "-")}
+                            </p>
+                        </SectionCard>
+                    </div>
+                </div>
+
+                {/* Content Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+                {/* Edit Intro Form */}
+                {editingIntro && (
+                    <div className="mt-6 p-5 bg-gray-50 rounded-lg border border-gray-200">
+                        <h3 className="font-semibold text-lg mb-4 text-gray-900">Edit Intro</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <Label className="text-sm font-medium text-gray-700">Headline</Label>
+                                <Input
+                                    value={profile.headline}
+                                    onChange={(e) => setProfile({...profile, headline: e.target.value})}
+                                    placeholder="e.g., Student at University | Aspiring Developer"
+                                    className="mt-1.5"
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-sm font-medium text-gray-700">Phone Number</Label>
+                                <Input
+                                    type="tel"
+                                    value={profile.phone}
+                                    onChange={(e) => setProfile({...profile, phone: e.target.value})}
+                                    placeholder="e.g., +91 9876543210"
+                                    className="mt-1.5"
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <Label className="text-sm font-medium text-gray-700">State</Label>
+                                    <select
+                                        value={profile.state} 
+                                        onChange={(e) => setProfile({...profile, state: e.target.value, city: ""})}
+                                        className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    >
+                                        <option value="">Select state</option>
+                                        {Object.keys(STATES_AND_CITIES).map((state) => (
+                                            <option key={state} value={state}>{state}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <Label className="text-sm font-medium text-gray-700">City</Label>
+                                    <select
+                                        value={profile.city} 
+                                        onChange={(e) => setProfile({...profile, city: e.target.value})}
+                                        disabled={!profile.state}
+                                        className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 disabled:bg-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    >
+                                        <option value="">Select city</option>
+                                        {profile.state && STATES_AND_CITIES[profile.state]?.map((city) => (
+                                            <option key={city} value={city}>{city}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 justify-end pt-2">
+                                <button
+                                    onClick={() => setEditingIntro(false)}
+                                    className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={updateProfile}
+                                    className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                                >
+                                    Save
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                         {/* About Section */}
                         <SectionCard
@@ -930,29 +950,12 @@ export default function StudentProfile() {
                         </SectionCard>
                     </div>
 
-                    {/* Right Column - Sidebar */}
+                    {/* Right Column */}
                     <div className="space-y-6">
-
-                    {/* Profile Language Card */}
-                    <SectionCard
-                        title="Profile language"
-                        onEdit={() => console.log("Edit language")}
-                    >
-                        <p className="text-sm text-gray-700">English</p>
-                    </SectionCard>
-
-                    {/* Public Profile URL Card */}
-                    <SectionCard
-                        title="Public profile & URL"
-                        onEdit={() => console.log("Edit profile URL")}
-                    >
-                        <p className="text-sm text-gray-600 break-all">
-                        www.ccs.com/in/{displayName.toLowerCase().replace(/\s+/g, "-")}
-                        </p>
-                    </SectionCard>
-
+                        {/* Additional sections can go here */}
+                    </div>
+                </div>
             </div>
         </div>
     );
 }
-                                

@@ -40,7 +40,7 @@ router.get("/status", async (req, res) => {
                 break;
             case 7: // Company
                 tableName = "companies";
-                requiredFields = ["state", "city", "address", "zipcode", "phone"];
+                requiredFields = ["company_type", "headquarters", "founded_year", "phone"];
                 break;
             default:
                 return res.json({ needsWelcome: false });
@@ -73,11 +73,19 @@ router.post("/", async (req, res) => {
     try {
         const userId = req.userId;
         const userType = req.userType;
-        const { state, city, address, zipcode, phone } = req.body;
+        const { state, city, address, zipcode, phone, company_type, headquarters, founded_year } = req.body;
 
-        // Validate required fields
-        if (!state || !city || !address || !zipcode || !phone) {
-            return res.status(400).json({ message: "All fields are required" });
+        // Validate required fields based on user type
+        if (userType === 7) {
+            // Company validation
+            if (!company_type || !headquarters || !founded_year || !phone) {
+                return res.status(400).json({ message: "All fields are required" });
+            }
+        } else {
+            // Other user types validation
+            if (!state || !city || !address || !zipcode || !phone) {
+                return res.status(400).json({ message: "All fields are required" });
+            }
         }
 
         // Get user name for organization records
@@ -162,18 +170,17 @@ router.post("/", async (req, res) => {
 
             case 7: // Company
                 result = await pool.query(
-                    `INSERT INTO companies (user_id, name, state, city, address, zipcode, phone, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+                    `INSERT INTO companies (user_id, name, company_type, headquarters, founded_year, phone, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, NOW())
                      ON CONFLICT (user_id)
                      DO UPDATE SET
-                       state = $3,
-                       city = $4,
-                       address = $5,
-                       zipcode = $6,
-                       phone = $7,
+                       company_type = $3,
+                       headquarters = $4,
+                       founded_year = $5,
+                       phone = $6,
                        updated_at = NOW()
                      RETURNING *`,
-                    [userId, userName, state, city, address, zipcode, phone]
+                    [userId, userName, company_type, headquarters, founded_year, phone]
                 );
                 break;
 
