@@ -9,7 +9,7 @@ const {
    updateProfile,
    addEducation,
    deleteEducation,
-   addExperience,
+   addExperience, 
    deleteExperience,
    addSkill,
    deleteSkill,
@@ -22,8 +22,11 @@ const {
    getStudentBasicInfo,
    applyJob,
    getAppliedJobs,
+   getAppliedJobDetails,
+   getAppliedJobIds,
    completeWelcome,
    checkWelcomeStatus,
+
 } = studentController;
 
 /* =============================
@@ -82,11 +85,10 @@ router.delete("/certifications/:id", deleteCertification);
    STUDENT – COMPANIES & JOBS
 ============================= */
 router.get("/companies", getCompaniesWithJobs);
-router.get(
-   "/student/basic-info",
-   getStudentBasicInfo
-);
+router.get("/student/basic-info",getStudentBasicInfo);
 router.post("/jobs/apply", applyJob);
-router.get("/jobs/applied", getAppliedJobs);
+router.get("/student/applied-jobs", getAppliedJobs);
+router.get("/jobs/applied-ids",getAppliedJobIds);
+router.get("/student/applied-jobs/:applicationId",getAppliedJobDetails);
 
 module.exports = router;

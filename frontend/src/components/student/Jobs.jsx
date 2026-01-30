@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -19,12 +20,9 @@ export default function JobBoard() {
     const [loadingAppliedJobs, setLoadingAppliedJobs] = useState(true);
     const [appliedJobs, setAppliedJobs] = useState(new Set());
     const token = localStorage.getItem("token");
-
-    /* ================= STATE ================= */
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [location, setLocation] = useState("");
+    const [searchQuery, setSearchQuery] = useState(""); // ✅ Single unified search
     const [selectedJob, setSelectedJob] = useState(null);
     const [savedJobs, setSavedJobs] = useState(new Set());
     const [openDropdown, setOpenDropdown] = useState(null);
@@ -37,7 +35,6 @@ export default function JobBoard() {
         industry: [],
     });
 
-    /* ================= FETCH JOBS ================= */
     useEffect(() => {
         fetchJobs();
     }, []);
@@ -53,40 +50,26 @@ export default function JobBoard() {
             });
 
             const data = await res.json();
-
-            /**
-             * Convert company-wise jobs → flat list
-             * IMPORTANT: Ensure job.id is stored as string for consistent comparison
-             */
             const formattedJobs = data.flatMap((company) =>
                 company.jobs.map((job) => ({
-                    id: String(job.id), // ✅ Convert to string immediately
+                    id: String(job.id),
                     title: job.title,
                     company: company.company_name,
-
                     location: job.location || "Not specified",
                     workMode: job.work_mode || "On-site",
-
                     salary: job.salary || "As per company norms",
-
                     employmentType:
                         job.job_types?.length > 0
                             ? job.job_types.join(", ")
                             : "Full-time",
-
                     experience: job.experience || "Not specified",
-
                     posted: job.posted_at
                         ? new Date(job.posted_at).toLocaleDateString()
                         : "Recently",
-
                     postedRaw: job.posted_at,
-
                     companyType: company.company_type || "Company",
                     industry: company.industry || "General",
-
                     description: job.description || "No description provided.",
-
                     benefits: job.benefits || [],
                     shifts: job.shifts || [],
                     languages: job.languages || [],
@@ -101,19 +84,16 @@ export default function JobBoard() {
         }
     };
 
-    /* ================= FETCH APPLIED JOBS ================= */
     useEffect(() => {
         const fetchAppliedJobs = async () => {
             try {
-                const res = await fetch(`${BACKEND_URL}/api/profile/jobs/applied`, {
+                const res = await fetch(`${BACKEND_URL}/api/profile/jobs/applied-ids`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
 
                 if (data.success) {
-                    // ✅ Backend already returns strings, create Set directly
                     setAppliedJobs(new Set(data.data));
-                    console.log("Applied Jobs:", data.data); // Debug log
                 }
             } catch (err) {
                 console.error("Error fetching applied jobs:", err);
@@ -125,7 +105,6 @@ export default function JobBoard() {
         fetchAppliedJobs();
     }, [token]);
 
-    /* ================= SAVE/UNSAVE JOB ================= */
     const toggleSaveJob = (jobId) => {
         const newSaved = new Set(savedJobs);
         if (newSaved.has(jobId)) {
@@ -136,7 +115,6 @@ export default function JobBoard() {
         setSavedJobs(newSaved);
     };
 
-    /* ================= FILTER HANDLERS ================= */
     const handleFilterChange = (filterType, value) => {
         setFilters((prev) => {
             const currentValues = prev[filterType];
@@ -164,16 +142,16 @@ export default function JobBoard() {
         });
     };
 
-    /* ================= FILTER LOGIC ================= */
+    // ✅ IMPROVED FILTERING LOGIC - Single search handles everything
     const filteredJobs = jobs.filter((job) => {
+        // ✅ Unified search - checks job title, company name, AND location
+        const searchLower = searchQuery.toLowerCase().trim();
         const matchesSearch =
             searchQuery === "" ||
-            job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            job.company.toLowerCase().includes(searchQuery.toLowerCase());
-
-        const matchesLocation =
-            location === "" ||
-            job.location.toLowerCase().includes(location.toLowerCase());
+            job.title.toLowerCase().includes(searchLower) ||
+            job.company.toLowerCase().includes(searchLower) ||
+            job.location.toLowerCase().includes(searchLower) ||
+            job.industry.toLowerCase().includes(searchLower);
 
         const matchesEmployment =
             filters.employmentType.length === 0 ||
@@ -216,7 +194,6 @@ export default function JobBoard() {
 
         return (
             matchesSearch &&
-            matchesLocation &&
             matchesEmployment &&
             matchesWorkMode &&
             matchesCompanyType &&
@@ -225,7 +202,6 @@ export default function JobBoard() {
         );
     });
 
-    /* ================= FILTER DROPDOWN COMPONENT ================= */
     const FilterDropdown = ({ title, options, filterKey }) => {
         const isOpen = openDropdown === filterKey;
         const selectedCount = filters[filterKey].length;
@@ -294,40 +270,42 @@ export default function JobBoard() {
         (arr) => arr.length > 0
     );
 
-    /* ================= UI ================= */
     return (
         <div className="flex flex-col h-screen bg-gray-50">
-            {/* Header - Search Bar */}
+            {/* ✅ UPDATED HEADER - Single Search Box */}
             <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
                 <div className="px-6 py-4">
                     <div className="flex items-center gap-3 max-w-7xl mx-auto">
+                        {/* ✅ Single Unified Search Box */}
                         <div className="flex-1 relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <input
                                 type="text"
-                                placeholder="Job title, keywords, or company"
+                                placeholder="Search by job title, company, location, or industry..."
                                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery("")}
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            )}
                         </div>
-                        <div className="w-80 relative">
-                            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                            <input
-                                type="text"
-                                placeholder="City, state, or pin code"
-                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                value={location}
-                                onChange={(e) => setLocation(e.target.value)}
-                            />
-                        </div>
-                        <button className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition-colors whitespace-nowrap">
-                            Find jobs
-                        </button>
                     </div>
+
+                    {/* Search Suggestions/Examples */}
+                    {!searchQuery && (
+                        <div className="max-w-7xl mx-auto mt-2 px-6">
+
+                        </div>
+                    )}
                 </div>
 
-                {/* Filter Buttons Row */}
+                {/* Filter Dropdowns */}
                 <div className="px-6 pb-4">
                     <div className="flex items-center gap-3 max-w-7xl mx-auto flex-wrap">
                         <FilterDropdown
@@ -440,6 +418,11 @@ export default function JobBoard() {
                                             {filteredJobs.length}
                                         </span>{" "}
                                         jobs found
+                                        {searchQuery && (
+                                            <span className="text-gray-500">
+                                                {" "}for "{searchQuery}"
+                                            </span>
+                                        )}
                                     </>
                                 )}
                             </p>
@@ -452,9 +435,14 @@ export default function JobBoard() {
                         )}
 
                         {!loading && filteredJobs.length === 0 && (
-                            <p className="text-center text-gray-500 py-10">
-                                No jobs found
-                            </p>
+                            <div className="text-center text-gray-500 py-10">
+                                <p className="text-lg font-medium mb-2">No jobs found</p>
+                                {searchQuery && (
+                                    <p className="text-sm">
+                                        Try adjusting your search or filters
+                                    </p>
+                                )}
+                            </div>
                         )}
 
                         <div className="space-y-3">
@@ -545,9 +533,6 @@ export default function JobBoard() {
                                     </p>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-
-                                    </button>
                                     <button
                                         onClick={() =>
                                             toggleSaveJob(selectedJob.id)
@@ -596,18 +581,17 @@ export default function JobBoard() {
                                 </div>
                             </div>
 
-                            {/* ✅ FIXED: Proper string comparison */}
                             {loadingAppliedJobs ? (
                                 <button
                                     disabled
-                                    className="w-full py-3 bg-gray-200 text-gray-500 font-semibold rounded-lg mb-3 cursor-not-allowed"
+                                    className="w-full py-3 bg-gray-200 text-gray-500 font-semibold rounded-lg mb-3"
                                 >
                                     Loading...
                                 </button>
-                            ) : appliedJobs.has(selectedJob.id) ? (
+                            ) : appliedJobs.has(String(selectedJob.id)) ? (
                                 <button
                                     disabled
-                                    className="w-full py-3 bg-gray-300 text-gray-700 font-semibold rounded-lg mb-3 cursor-not-allowed"
+                                    className="w-full py-3 bg-gray-300 text-gray-700 font-semibold rounded-lg mb-3"
                                 >
                                     Already Applied
                                 </button>
@@ -615,10 +599,13 @@ export default function JobBoard() {
                                 <button
                                     onClick={() => {
                                         navigate(`/jobs/apply/${selectedJob.id}`);
-                                        // ✅ Add to applied jobs immediately
-                                        setAppliedJobs(prev => new Set([...prev, selectedJob.id]));
+                                        setAppliedJobs(prev => {
+                                            const updated = new Set(prev);
+                                            updated.add(String(selectedJob.id));
+                                            return updated;
+                                        });
                                     }}
-                                    className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 mb-3 transition-colors"
+                                    className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
                                 >
                                     Apply Now
                                 </button>

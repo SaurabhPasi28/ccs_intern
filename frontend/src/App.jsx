@@ -80,6 +80,8 @@ import CompanyPosts from "./components/company/CompanyPosts";
 import StudentJobs from "./components/student/Jobs";
 import ApplyJob from "./components/student/ApplyJob";
 import CompanyJobDetail from "./components/company/CompanyJobDetail";
+import StudentAppliedJobs from "./components/student/StudentAppliedJobs";
+import AppliedJobDetails from "./components/student/AppliedJobDetails";
 import PublicJobPage from "./components/publicJobPage";
 /* Admin Pages */
 import AdminDashboard from "./components/admin/adminDashboard";
@@ -240,6 +242,25 @@ function App() {
             </PrivateRoute>
           }
         />
+
+        <Route
+          path="/student/applied-jobs"
+          element={
+            <PrivateRoute>
+              <StudentAppliedJobs />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/jobs/applied/:applicationId"
+          element={
+            <PrivateRoute>
+              <AppliedJobDetails />
+            </PrivateRoute>
+          }
+        />
+
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
         <Route path="/userTypePage" element={<UserListPage />} />
         <Route path="/jobs" element={<PublicJobPage />} />
