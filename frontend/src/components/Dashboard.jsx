@@ -209,7 +209,30 @@ export default function Dashboard() {
               {jobs.map((job) => (
                 <div
                   key={job.id}
-                  className="border rounded-lg p-4 flex justify-between items-center"
+                  className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(`${BACKEND_URL}/api/company/publish/${job.id}`, {
+                        method: "GET",
+                        headers: {
+                          Authorization: `Bearer ${token}`,
+                        },
+                      });
+
+                      if (!res.ok) throw new Error("Failed to fetch job details");
+
+                      const data = await res.json();
+
+                      // You can store the job details in localStorage, state, or context
+                      localStorage.setItem("selectedJob", JSON.stringify(data));
+
+                      // Navigate to frontend route for job details
+                      navigate(`/company/posts/${job.id}`);
+                    } catch (err) {
+                      console.error("Error fetching job details:", err);
+                      alert("Failed to load job details");
+                    }
+                  }}
                 >
                   <div>
                     <h3 className="font-semibold text-lg">{job.title}</h3>
@@ -219,51 +242,6 @@ export default function Dashboard() {
                     <p className="text-sm text-gray-500">
                       Created: {new Date(job.created_at).toLocaleDateString()}
                     </p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    {/* <Button
-                      variant="outline"
-                      onClick={() => navigate(`/api/company/publish/${job.id}`)}
-                    >
-                      View
-                    </Button> */}
-                    <Button
-                      variant="outline"
-                      onClick={async () => {
-                        try {
-                          const res = await fetch(`${BACKEND_URL}/api/company/publish/${job.id}`, {
-                            method: "GET",
-                            headers: {
-                              Authorization: `Bearer ${token}`,
-                            },
-                          });
-
-                          if (!res.ok) throw new Error("Failed to fetch job details");
-
-                          const data = await res.json();
-
-                          // You can store the job details in localStorage, state, or context
-                          localStorage.setItem("selectedJob", JSON.stringify(data));
-
-                          // Navigate to frontend route for job details
-                          navigate(`/company/posts/${job.id}`);
-                        } catch (err) {
-                          console.error("Error fetching job details:", err);
-                          alert("Failed to load job details");
-                        }
-                      }}
-                    >
-                      View
-                    </Button>
-
-
-                    <Button
-                      variant="destructive"
-                      onClick={() => deleteJob(job.id)}
-                    >
-                      Delete
-                    </Button>
                   </div>
                 </div>
               ))}
@@ -275,15 +253,24 @@ export default function Dashboard() {
       {/* ================= ACTION BUTTONS ================= */}
       <div className="flex justify-center gap-4">
         <Button onClick={goToProfile}>Profile</Button>
-
-        {/* ✅ STUDENT JOBS BUTTON */}
+        {/* STUDENT JOBS BUTTON */}
         {userType === 3 && (
-          <Button
-            onClick={() => navigate("/jobs")}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            Jobs
-          </Button>
+          <>
+            <Button
+              onClick={() => navigate("/jobs")}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Jobs
+            </Button>
+
+            {/* ✅ MY APPLIED JOBS BUTTON */}
+            <Button
+              onClick={() => navigate("/student/applied-jobs")}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              My Applied Jobs
+            </Button>
+          </>
         )}
 
 
@@ -306,4 +293,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
