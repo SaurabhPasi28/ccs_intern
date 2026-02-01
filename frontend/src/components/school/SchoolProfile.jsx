@@ -135,7 +135,7 @@ export default function SchoolProfile() {
 
     const fetchSchoolProfile = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/school`, {
+            const res = await fetch(`${API_URL}/school`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
@@ -172,7 +172,7 @@ export default function SchoolProfile() {
         
         setSavingSchool(true);
         try {
-            const res = await fetch(`${API_URL}/api/school`, {
+            const res = await fetch(`${API_URL}/school`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -204,7 +204,7 @@ export default function SchoolProfile() {
         try {
             const formData = new FormData();
             formData.append(type === 'profile' ? 'logoImage' : 'bannerImage', file);
-            const res = await fetch(`${API_URL}/api/school/media`, {
+            const res = await fetch(`${API_URL}/school/media`, {
                 method: "PATCH",
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
@@ -235,7 +235,7 @@ export default function SchoolProfile() {
         
         setAddingFacility(true);
         try {
-            const res = await fetch(`${API_URL}/api/school/facilities`, {
+            const res = await fetch(`${API_URL}/school/facilities`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -264,7 +264,7 @@ export default function SchoolProfile() {
         
         setDeletingItem(id);
         try {
-            const res = await fetch(`${API_URL}/api/school/facilities/${id}`, {
+            const res = await fetch(`${API_URL}/school/facilities/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -285,7 +285,7 @@ export default function SchoolProfile() {
         
         setAddingProgram(true);
         try {
-            const res = await fetch(`${API_URL}/api/school/programs`, {
+            const res = await fetch(`${API_URL}/school/programs`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -313,7 +313,7 @@ export default function SchoolProfile() {
         
         setDeletingItem(id);
         try {
-            const res = await fetch(`${API_URL}/api/school/programs/${id}`, {
+            const res = await fetch(`${API_URL}/school/programs/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -334,7 +334,7 @@ export default function SchoolProfile() {
         
         setAddingAchievement(true);
         try {
-            const res = await fetch(`${API_URL}/api/school/achievements`, {
+            const res = await fetch(`${API_URL}/school/achievements`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -362,7 +362,7 @@ export default function SchoolProfile() {
         
         setDeletingItem(id);
         try {
-            const res = await fetch(`${API_URL}/api/school/achievements/${id}`, {
+            const res = await fetch(`${API_URL}/school/achievements/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -383,7 +383,7 @@ export default function SchoolProfile() {
         
         setAddingResult(true);
         try {
-            const res = await fetch(`${API_URL}/api/school/results`, {
+            const res = await fetch(`${API_URL}/school/results`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -414,7 +414,7 @@ export default function SchoolProfile() {
         
         setDeletingItem(id);
         try {
-            const res = await fetch(`${API_URL}/api/school/results/${id}`, {
+            const res = await fetch(`${API_URL}/school/results/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -471,15 +471,6 @@ export default function SchoolProfile() {
                             {editingSchool ? (
                                 <FormContainer>
                                     <div className="space-y-4">
-                                        <div>
-                                            <Label>School Name *</Label>
-                                            <Input
-                                                value={school.name}
-                                                onChange={(e) => setSchool({ ...school, name: e.target.value })}
-                                                placeholder="Enter school name"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
                                                 <Label>Board</Label>
@@ -670,7 +661,6 @@ export default function SchoolProfile() {
                                 </FormContainer>
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                                    <InfoItem label="School Name" value={school.name} />
                                     <InfoItem label="Board" value={school.board} />
                                     <InfoItem label="School Type" value={school.school_type} />
                                     <InfoItem label="Established" value={school.established_year} />

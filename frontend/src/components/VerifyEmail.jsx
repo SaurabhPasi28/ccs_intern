@@ -20,7 +20,7 @@ export default function VerifyEmail() {
 
     const verifyEmail = async () => {
       try {
-        const res = await axios.get(`${API_URL}/api/auth/verify/${token}`);
+        const res = await axios.get(`${API_URL}/auth/verify/${token}`);
         toast.success(res.data.message || "Email verified successfully");
         localStorage.setItem("email_verified", "true");
         setStatus("Email verified successfully! Redirecting to login...");

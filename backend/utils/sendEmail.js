@@ -1,12 +1,14 @@
 require('dotenv').config();
 const nodemailer = require("nodemailer");
 
-// configure transporter (example using Gmail)
+// configure transporter (Hostinger SMTP)
 const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.hostinger.com",
+    port: 465,
+    secure: true, // true for 465, false for other ports
     auth: {
         user: process.env.EMAIL_USER, // your email
-        pass: process.env.EMAIL_PASS, // app password (not normal password)
+        pass: process.env.EMAIL_PASS, // your email password
     },
 });
 
@@ -19,7 +21,7 @@ exports.sendVerificationEmail = async (to, token) => {
     const verifyUrl = `http://localhost:5173/verify-email/${token}`;
 
     await transporter.sendMail({
-        from: '"CCS Platform" <no-reply@ccs.com>',
+        from: `"CCS Platform" <${process.env.EMAIL_USER}>`,
         to,
         subject: "Verify your email",
         html: `

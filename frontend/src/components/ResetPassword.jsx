@@ -33,7 +33,7 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/api/auth/reset-password/${token}`, { password });
+      await axios.post(`${API_URL}/auth/reset-password/${token}`, { password });
       toast.success("Password reset successfully 🔐");
       navigate("/login");
     } catch (err) {

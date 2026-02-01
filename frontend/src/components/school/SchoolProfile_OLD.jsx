@@ -63,7 +63,7 @@ export default function SchoolProfile() {
 
     const fetchSchoolProfile = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/school`, {
+            const res = await fetch(`${API_URL}/school`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
@@ -86,7 +86,7 @@ export default function SchoolProfile() {
 
     const updateSchool = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/school`, {
+            const res = await fetch(`${API_URL}/school`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -112,7 +112,7 @@ export default function SchoolProfile() {
         try {
             const formData = new FormData();
             formData.append(type === 'profile' ? 'logoImage' : 'bannerImage', file);
-            const res = await fetch(`${API_URL}/api/school/media`, {
+            const res = await fetch(`${API_URL}/school/media`, {
                 method: "PATCH",
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
@@ -140,7 +140,7 @@ export default function SchoolProfile() {
     const addFacility = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/api/school/facilities`, {
+            const res = await fetch(`${API_URL}/school/facilities`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -164,7 +164,7 @@ export default function SchoolProfile() {
 
     const deleteFacility = async (id) => {
         try {
-            const res = await fetch(`${API_URL}/api/school/facilities/${id}`, {
+            const res = await fetch(`${API_URL}/school/facilities/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -180,7 +180,7 @@ export default function SchoolProfile() {
     const addProgram = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/api/school/programs`, {
+            const res = await fetch(`${API_URL}/school/programs`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -203,7 +203,7 @@ export default function SchoolProfile() {
 
     const deleteProgram = async (id) => {
         try {
-            const res = await fetch(`${API_URL}/api/school/programs/${id}`, {
+            const res = await fetch(`${API_URL}/school/programs/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -219,7 +219,7 @@ export default function SchoolProfile() {
     const addAchievement = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/api/school/achievements`, {
+            const res = await fetch(`${API_URL}/school/achievements`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -242,7 +242,7 @@ export default function SchoolProfile() {
 
     const deleteAchievement = async (id) => {
         try {
-            const res = await fetch(`${API_URL}/api/school/achievements/${id}`, {
+            const res = await fetch(`${API_URL}/school/achievements/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -258,7 +258,7 @@ export default function SchoolProfile() {
     const addResult = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/api/school/results`, {
+            const res = await fetch(`${API_URL}/school/results`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -284,7 +284,7 @@ export default function SchoolProfile() {
 
     const deleteResult = async (id) => {
         try {
-            const res = await fetch(`${API_URL}/api/school/results/${id}`, {
+            const res = await fetch(`${API_URL}/school/results/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });

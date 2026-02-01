@@ -75,7 +75,7 @@
 
 //     setLoading(true);
 //     try {
-//       const res = await axios.post(`${API_URL}/api/auth/login`, {
+//       const res = await axios.post(`${API_URL}/auth/login`, {
 //         email: email.toLowerCase().trim(), // ✅ keep normalization
 //         password,
 //       });
@@ -217,7 +217,7 @@ import { Label } from "@/components/ui/label";
 import img1 from "../assets/img1.png";
 import img3 from "../assets/img3.png";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL;
 
 /* ---------------- Image Slideshow ---------------- */
 function ImageSlideshow({ images }) {
@@ -295,7 +295,11 @@ export default function Login() {
 
       if (welcomeCheck.data.needsWelcome) {
         toast.success("Welcome! Let's complete your profile");
-        navigate("/welcome");
+        if (user.user_type === 5) {
+          navigate("/welcome/university");
+        } else {
+          navigate("/welcome");
+        }
       } else {
         toast.success("Welcome back 🎉");
         navigate("/dashboard");

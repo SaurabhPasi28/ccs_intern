@@ -63,6 +63,8 @@ import VerifyEmail from "./components/VerifyEmail";
 import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
 import Welcome from "./components/Welcome";
+import UniversityWelcome from "./components/university/UniversityWelcome";
+import SchoolWelcome from "./components/school/SchoolWelcome";
 
 /* Dashboard */
 import Dashboard from "./components/Dashboard";
@@ -137,6 +139,24 @@ function App() {
           element={
             <PrivateRoute>
               <Welcome />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/welcome/university"
+          element={
+            <PrivateRoute>
+              <UniversityWelcome />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/welcome/school"
+          element={
+            <PrivateRoute>
+              <SchoolWelcome />
             </PrivateRoute>
           }
         />

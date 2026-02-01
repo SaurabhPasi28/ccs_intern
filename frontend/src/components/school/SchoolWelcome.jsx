@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Button } from "./ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Button } from "../ui/button";
 import { toast } from "sonner";
-import { STATES_AND_CITIES } from "./data/statesAndCities";
+import { STATES_AND_CITIES } from "../data/statesAndCities";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export default function Welcome() {
+export default function SchoolWelcome() {
     const navigate = useNavigate();
-    const [userType, setUserType] = useState(null);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         state: "",
@@ -18,9 +17,6 @@ export default function Welcome() {
         address: "",
         zipcode: "",
         phone: "",
-        company_type: "",
-        headquarters: "",
-        founded_year: ""
     });
 
     useEffect(() => {
@@ -32,30 +28,28 @@ export default function Welcome() {
             return;
         }
         
-        const userType = parseInt(type);
-        setUserType(userType);
-
-        // Redirect school users to school welcome page
-        if (userType === 6) {
-            navigate("/welcome/school");
-            return;
-        }
-
-        // Redirect university users to university welcome page
-        if (userType === 5) {
-            navigate("/welcome/university");
+        // Only allow school users (type 6)
+        if (parseInt(type) !== 6) {
+            navigate("/dashboard");
             return;
         }
     }, [navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Validate required fields
+        if (!formData.state || !formData.city || !formData.address || !formData.zipcode || !formData.phone) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
+
         setLoading(true);
 
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`${API_URL}/welcome`, {
-                method: "POST",
+            const response = await fetch(`${API_URL}/school`, {
+                method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`
@@ -66,13 +60,13 @@ export default function Welcome() {
             const data = await response.json();
 
             if (response.ok) {
-                toast.success("Profile completed successfully!");
+                toast.success("School profile completed successfully!");
                 navigate("/dashboard");
             } else {
-                toast.error(data.message || "Failed to save information");
+                toast.error(data.message || "Failed to save school information");
             }
         } catch (error) {
-            console.error("Welcome form error:", error);
+            console.error("School welcome form error:", error);
             toast.error("An error occurred. Please try again.");
         } finally {
             setLoading(false);
@@ -90,84 +84,18 @@ export default function Welcome() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
                 <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold text-gray-800 mb-2">Welcome! 🎉</h1>
-                    <p className="text-gray-600">Let's complete your profile to get started</p>
+                    <h1 className="text-4xl font-bold text-gray-800 mb-2">Welcome to CCS! 🎉</h1>
+                    <p className="text-gray-600">Let's complete your school profile to get started</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Company-specific fields - Only show for company users (userType === 4) */}
-                    {userType === 7 && (
-                        <>
+                    {/* LOCATION SECTION */}
+                    <div>
+                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h2>
+                        <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Company Type */}
-                                <div>
-                                    <Label htmlFor="company_type" className="text-sm font-medium text-gray-700">
-                                        Company Type <span className="text-red-500">*</span>
-                                    </Label>
-                                    <select
-                                        id="company_type"
-                                        name="company_type"
-                                        required
-                                        value={formData.company_type}
-                                        onChange={handleChange}
-                                        className="w-full mt-1.5 border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    >
-                                        <option value="">Select company type</option>
-                                        <option value="Private">Private</option>
-                                        <option value="Public">Public</option>
-                                        <option value="Startup">Startup</option>
-                                        <option value="Non-Profit">Non-Profit</option>
-                                        <option value="Government">Government</option>
-                                        <option value="Partnership">Partnership</option>
-                                    </select>
-                                </div>
-
-                                {/* Founded Year */}
-                                <div>
-                                    <Label htmlFor="founded_year" className="text-sm font-medium text-gray-700">
-                                        Founded Year <span className="text-red-500">*</span>
-                                    </Label>
-                                    <Input
-                                        id="founded_year"
-                                        name="founded_year"
-                                        type="number"
-                                        required
-                                        value={formData.founded_year}
-                                        onChange={handleChange}
-                                        placeholder="e.g., 2020"
-                                        className="mt-1.5"
-                                        min="1800"
-                                        max={new Date().getFullYear()}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Headquarters */}
-                            <div>
-                                <Label htmlFor="headquarters" className="text-sm font-medium text-gray-700">
-                                    Headquarters <span className="text-red-500">*</span>
-                                </Label>
-                                <Input
-                                    id="headquarters"
-                                    name="headquarters"
-                                    type="text"
-                                    required
-                                    value={formData.headquarters}
-                                    onChange={handleChange}
-                                    placeholder="e.g., Mumbai, India"
-                                    className="mt-1.5"
-                                />
-                            </div>
-                        </>
-                    )}
-
-                    {/* Only show location fields for non-company users */}
-                    {userType !== 7 && (
-                        <>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* State */}
                                 <div>
                                     <Label htmlFor="state" className="text-sm font-medium text-gray-700">
                                         State <span className="text-red-500">*</span>
@@ -187,7 +115,6 @@ export default function Welcome() {
                                     </select>
                                 </div>
 
-                                {/* City */}
                                 <div>
                                     <Label htmlFor="city" className="text-sm font-medium text-gray-700">
                                         City <span className="text-red-500">*</span>
@@ -209,7 +136,6 @@ export default function Welcome() {
                                 </div>
                             </div>
 
-                            {/* Address */}
                             <div>
                                 <Label htmlFor="address" className="text-sm font-medium text-gray-700">
                                     Address <span className="text-red-500">*</span>
@@ -221,13 +147,12 @@ export default function Welcome() {
                                     required
                                     value={formData.address}
                                     onChange={handleChange}
-                                    placeholder="Enter your complete address"
+                                    placeholder="Enter complete school address"
                                     className="mt-1.5"
                                 />
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Zipcode */}
                                 <div>
                                     <Label htmlFor="zipcode" className="text-sm font-medium text-gray-700">
                                         Zipcode <span className="text-red-500">*</span>
@@ -245,7 +170,6 @@ export default function Welcome() {
                                     />
                                 </div>
 
-                                {/* Phone */}
                                 <div>
                                     <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
                                         Phone Number <span className="text-red-500">*</span>
@@ -262,39 +186,20 @@ export default function Welcome() {
                                     />
                                 </div>
                             </div>
-                        </>
-                    )}
-
-                    {/* Phone field for company users */}
-                    {userType === 7 && (
-                        <div>
-                            <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
-                                Phone Number <span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                                id="phone"
-                                name="phone"
-                                type="tel"
-                                required
-                                value={formData.phone}
-                                onChange={handleChange}
-                                placeholder="e.g., +91 9876543210"
-                                className="mt-1.5"
-                            />
                         </div>
-                    )}
+                    </div>
 
                     <Button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-8"
                     >
                         {loading ? "Saving..." : "Continue"}
                     </Button>
                 </form>
 
                 <p className="text-center text-sm text-gray-500 mt-6">
-                    All fields are required to access your dashboard
+                    All fields marked with <span className="text-red-500">*</span> are required to access your dashboard
                 </p>
             </div>
         </div>

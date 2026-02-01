@@ -229,10 +229,6 @@ export default function CompanyProfile() {
                                 <form onSubmit={(e) => { e.preventDefault(); saveCompany(); }} className="space-y-4">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <Label className="text-sm font-medium text-gray-700">Company Name</Label>
-                                            <Input value={company.name || ""} onChange={(e) => setCompany({ ...company, name: e.target.value })} className="mt-1.5" />
-                                        </div>
-                                        <div>
                                             <Label className="text-sm font-medium text-gray-700">Industry</Label>
                                             <Input value={company.industry || ""} onChange={(e) => setCompany({ ...company, industry: e.target.value })} className="mt-1.5" />
                                         </div>
@@ -339,7 +335,6 @@ export default function CompanyProfile() {
                                     ) : (
                                         <>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                                                <InfoItem label="Company Name" value={company.name} />
                                                 <InfoItem label="Industry" value={company.industry} />
                                                 <InfoItem label="Company Type" value={company.company_type} />
                                                 <InfoItem label="Founded Year" value={company.founded_year} />
