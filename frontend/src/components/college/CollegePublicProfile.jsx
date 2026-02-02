@@ -36,7 +36,7 @@ export default function CollegePublicProfile() {
     // const fetchCollegeProfile = async () => {
     //     try {
     //         setLoading(true);
-    //         const response = await fetch(`${API_URL}/api/college/public/${id}`);
+    //         const response = await fetch(`${API_URL}/college/public/${id}`);
     //         const data = await response.json();
 
     //         if (response.ok) {

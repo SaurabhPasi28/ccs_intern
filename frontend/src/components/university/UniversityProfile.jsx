@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { Button } from "../ui/button";
 import { toast } from "sonner";
 import { STATES_AND_CITIES } from "../data/statesAndCities";
 import { 
@@ -16,12 +17,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const UNIVERSITY_TYPES = ["Public", "Private", "Deemed", "Central", "State"];
 const ACCREDITATIONS = ["NAAC A++", "NAAC A+", "NAAC A", "NAAC B++", "NAAC B+", "UGC Approved", "Other"];
-const PROGRAM_LEVELS = ["Undergraduate", "Postgraduate", "Doctoral", "Diploma", "Certificate"];
 const RANKING_BODIES = ["NIRF", "QS World Rankings", "THE World Rankings", "Academic Ranking", "Other"];
-const FACILITY_OPTIONS = [
-    "Central Library", "Hostel", "Sports Complex", "Auditorium", "Laboratory",
-    "Computer Center", "Medical Center", "Cafeteria", "Wi-Fi Campus", "Gym"
-];
 
 // Helper component for displaying information
 function InfoItem({ label, value, icon }) {
@@ -91,12 +87,9 @@ export default function UniversityProfile() {
     // Loading states
     const [savingUniversity, setSavingUniversity] = useState(false);
     const [uploadingImage, setUploadingImage] = useState({ profile: false, banner: false });
-    const [addingDepartment, setAddingDepartment] = useState(false);
-    const [addingProgram, setAddingProgram] = useState(false);
-    const [addingFacility, setAddingFacility] = useState(false);
+    const [addingDegree, setAddingDegree] = useState(false);
     const [addingPlacement, setAddingPlacement] = useState(false);
     const [addingRanking, setAddingRanking] = useState(false);
-    const [addingResearch, setAddingResearch] = useState(false);
     const [deletingItem, setDeletingItem] = useState(null);
 
     // Edit modes
@@ -111,26 +104,15 @@ export default function UniversityProfile() {
         campus_area: "", logo_url: "", banner_url: "", referral_code: ""
     });
 
-    const [departments, setDepartments] = useState([]);
-    const [programs, setPrograms] = useState([]);
-    const [facilities, setFacilities] = useState([]);
+    const [degrees, setDegrees] = useState([]);
     const [placements, setPlacements] = useState([]);
     const [rankings, setRankings] = useState([]);
-    const [research, setResearch] = useState([]);
 
-    const [showDepartmentForm, setShowDepartmentForm] = useState(false);
-    const [showProgramForm, setShowProgramForm] = useState(false);
-    const [showFacilityForm, setShowFacilityForm] = useState(false);
+    const [showDegreeForm, setShowDegreeForm] = useState(false);
     const [showPlacementForm, setShowPlacementForm] = useState(false);
     const [showRankingForm, setShowRankingForm] = useState(false);
-    const [showResearchForm, setShowResearchForm] = useState(false);
 
-    const [departmentForm, setDepartmentForm] = useState({ department_name: "", hod_name: "" });
-    const [programForm, setProgramForm] = useState({
-        program_level: "", program_name: "", department: "", duration_years: "",
-        annual_fees: "", total_seats: "", eligibility: ""
-    });
-    const [facilityForm, setFacilityForm] = useState({ facility_name: "" });
+    const [degreeForm, setDegreeForm] = useState({ degree_name: "" });
     const [placementForm, setPlacementForm] = useState({
         academic_year: "", placement_percent: "", average_package: "",
         highest_package: "", companies_visited: "", top_recruiters: ""
@@ -138,17 +120,44 @@ export default function UniversityProfile() {
     const [rankingForm, setRankingForm] = useState({
         ranking_body: "", rank_value: "", year: "", category: "", certificate_url: ""
     });
-    const [researchForm, setResearchForm] = useState({
-        research_title: "", area: "", publication_year: "", description: ""
-    });
+
+    const [qrCode, setQrCode] = useState(null);
+    const [qrLoading, setQrLoading] = useState(false);
 
     useEffect(() => {
         fetchUniversityProfile();
+        fetchQRCode();
     }, []);
+
+    const fetchQRCode = async () => {
+        setQrLoading(true);
+        try {
+            const res = await fetch(`${API_URL}/university/qrcode`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setQrCode(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch QR code:", err);
+        } finally {
+            setQrLoading(false);
+        }
+    };
+
+    const downloadQRCode = () => {
+        if (!qrCode?.qrCode) return;
+        const link = document.createElement('a');
+        link.href = qrCode.qrCode;
+        link.download = `${qrCode.universityName || 'university'}_referral_qr.png`;
+        link.click();
+        toast.success("QR Code downloaded!");
+    };
 
     const fetchUniversityProfile = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/university`, {
+            const res = await fetch(`${API_URL}/university`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
@@ -158,12 +167,9 @@ export default function UniversityProfile() {
                     setOriginalUniversity(data.university);
                     setDisplayName(data.university.name || "Your University");
                 }
-                setDepartments(data.departments || []);
-                setPrograms(data.programs || []);
-                setFacilities(data.facilities || []);
+                setDegrees(data.degrees || []);
                 setPlacements(data.placements || []);
                 setRankings(data.rankings || []);
-                setResearch(data.research || []);
             }
         } catch (err) {
             toast.error("Failed to load university profile");
@@ -187,7 +193,7 @@ export default function UniversityProfile() {
         
         setSavingUniversity(true);
         try {
-            const res = await fetch(`${API_URL}/api/university`, {
+            const res = await fetch(`${API_URL}/university`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -219,7 +225,7 @@ export default function UniversityProfile() {
         try {
             const formData = new FormData();
             formData.append(type === 'profile' ? 'logoImage' : 'bannerImage', file);
-            const res = await fetch(`${API_URL}/api/university/media`, {
+            const res = await fetch(`${API_URL}/university/media`, {
                 method: "PATCH",
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
@@ -240,154 +246,65 @@ export default function UniversityProfile() {
     };
 
     const clearImages = async () => {
-        toast.info("Clear images functionality needs to be implemented");
-        setShowEditMenu(false);
+        try {
+            const res = await fetch(`${API_URL}/university/media/clear`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+                toast.success("Images cleared");
+                setUniversity((prev) => ({ ...prev, logo_url: "", banner_url: "" }));
+                setShowEditMenu(false);
+            } else {
+                const data = await res.json();
+                toast.error(data.message || "Failed to clear images");
+            }
+        } catch (err) {
+            toast.error("Failed to clear images");
+        }
     };
 
-    const addDepartment = async (e) => {
+    const addDegree = async (e) => {
         e.preventDefault();
-        if (addingDepartment) return;
+        if (addingDegree) return;
         
-        setAddingDepartment(true);
+        setAddingDegree(true);
         try {
-            const res = await fetch(`${API_URL}/api/university/departments`, {
+            const res = await fetch(`${API_URL}/university/degrees`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify(departmentForm),
+                body: JSON.stringify(degreeForm),
             });
             if (res.ok) {
-                toast.success("Department added");
-                setShowDepartmentForm(false);
-                setDepartmentForm({ department_name: "", hod_name: "" });
+                toast.success("Degree added");
+                setShowDegreeForm(false);
+                setDegreeForm({ degree_name: "" });
                 fetchUniversityProfile();
             } else {
                 const data = await res.json();
-                toast.error(data.message || "Failed to add department");
+                toast.error(data.message || "Failed to add degree");
             }
         } catch (err) {
-            toast.error("Failed to add department");
+            toast.error("Failed to add degree");
         } finally {
-            setAddingDepartment(false);
+            setAddingDegree(false);
         }
     };
 
-    const deleteDepartment = async (id) => {
+    const deleteDegree = async (id) => {
         if (deletingItem) return;
         
         setDeletingItem(id);
         try {
-            const res = await fetch(`${API_URL}/api/university/departments/${id}`, {
+            const res = await fetch(`${API_URL}/university/degrees/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.ok) {
-                toast.success("Department deleted");
-                fetchUniversityProfile();
-            }
-        } catch (err) {
-            toast.error("Failed to delete");
-        } finally {
-            setDeletingItem(null);
-        }
-    };
-
-    const addProgram = async (e) => {
-        e.preventDefault();
-        if (addingProgram) return;
-        
-        setAddingProgram(true);
-        try {
-            const res = await fetch(`${API_URL}/api/university/programs`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(programForm),
-            });
-            if (res.ok) {
-                toast.success("Program added");
-                setShowProgramForm(false);
-                setProgramForm({
-                    program_level: "", program_name: "", department: "", duration_years: "",
-                    annual_fees: "", total_seats: "", eligibility: ""
-                });
-                fetchUniversityProfile();
-            } else {
-                const data = await res.json();
-                toast.error(data.message || "Failed to add program");
-            }
-        } catch (err) {
-            toast.error("Failed to add program");
-        } finally {
-            setAddingProgram(false);
-        }
-    };
-
-    const deleteProgram = async (id) => {
-        if (deletingItem) return;
-        
-        setDeletingItem(id);
-        try {
-            const res = await fetch(`${API_URL}/api/university/programs/${id}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-                toast.success("Program deleted");
-                fetchUniversityProfile();
-            }
-        } catch (err) {
-            toast.error("Failed to delete");
-        } finally {
-            setDeletingItem(null);
-        }
-    };
-
-    const addFacility = async (e) => {
-        e.preventDefault();
-        if (addingFacility) return;
-        
-        setAddingFacility(true);
-        try {
-            const res = await fetch(`${API_URL}/api/university/facilities`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(facilityForm),
-            });
-            if (res.ok) {
-                toast.success("Facility added");
-                setShowFacilityForm(false);
-                setFacilityForm({ facility_name: "" });
-                fetchUniversityProfile();
-            } else {
-                const data = await res.json();
-                toast.error(data.message || "Failed to add facility");
-            }
-        } catch (err) {
-            toast.error("Failed to add facility");
-        } finally {
-            setAddingFacility(false);
-        }
-    };
-
-    const deleteFacility = async (id) => {
-        if (deletingItem) return;
-        
-        setDeletingItem(id);
-        try {
-            const res = await fetch(`${API_URL}/api/university/facilities/${id}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-                toast.success("Facility deleted");
+                toast.success("Degree deleted");
                 fetchUniversityProfile();
             }
         } catch (err) {
@@ -403,7 +320,7 @@ export default function UniversityProfile() {
         
         setAddingPlacement(true);
         try {
-            const res = await fetch(`${API_URL}/api/university/placements`, {
+            const res = await fetch(`${API_URL}/university/placements`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -435,7 +352,7 @@ export default function UniversityProfile() {
         
         setDeletingItem(id);
         try {
-            const res = await fetch(`${API_URL}/api/university/placements/${id}`, {
+            const res = await fetch(`${API_URL}/university/placements/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -456,7 +373,7 @@ export default function UniversityProfile() {
         
         setAddingRanking(true);
         try {
-            const res = await fetch(`${API_URL}/api/university/rankings`, {
+            const res = await fetch(`${API_URL}/university/rankings`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -487,64 +404,12 @@ export default function UniversityProfile() {
         
         setDeletingItem(id);
         try {
-            const res = await fetch(`${API_URL}/api/university/rankings/${id}`, {
+            const res = await fetch(`${API_URL}/university/rankings/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.ok) {
                 toast.success("Ranking deleted");
-                fetchUniversityProfile();
-            }
-        } catch (err) {
-            toast.error("Failed to delete");
-        } finally {
-            setDeletingItem(null);
-        }
-    };
-
-    const addResearch = async (e) => {
-        e.preventDefault();
-        if (addingResearch) return;
-        
-        setAddingResearch(true);
-        try {
-            const res = await fetch(`${API_URL}/api/university/research`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(researchForm),
-            });
-            if (res.ok) {
-                toast.success("Research added");
-                setShowResearchForm(false);
-                setResearchForm({
-                    research_title: "", area: "", publication_year: "", description: ""
-                });
-                fetchUniversityProfile();
-            } else {
-                const data = await res.json();
-                toast.error(data.message || "Failed to add research");
-            }
-        } catch (err) {
-            toast.error("Failed to add research");
-        } finally {
-            setAddingResearch(false);
-        }
-    };
-
-    const deleteResearch = async (id) => {
-        if (deletingItem) return;
-        
-        setDeletingItem(id);
-        try {
-            const res = await fetch(`${API_URL}/api/university/research/${id}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-                toast.success("Research deleted");
                 fetchUniversityProfile();
             }
         } catch (err) {
@@ -831,195 +696,57 @@ export default function UniversityProfile() {
                             )}
                         </SectionCard>
 
-                        {/* DEPARTMENTS SECTION */}
-                        <SectionCard title="Departments" onAdd={() => setShowDepartmentForm(!showDepartmentForm)}>
-                            {showDepartmentForm && (
-                                <FormContainer onSubmit={addDepartment}>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label>Department Name *</Label>
-                                            <Input
-                                                required
-                                                value={departmentForm.department_name}
-                                                onChange={(e) => setDepartmentForm({ ...departmentForm, department_name: e.target.value })}
-                                                placeholder="e.g., Computer Science"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label>HOD Name</Label>
-                                            <Input
-                                                value={departmentForm.hod_name}
-                                                onChange={(e) => setDepartmentForm({ ...departmentForm, hod_name: e.target.value })}
-                                                placeholder="Head of Department"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-3 justify-end">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setShowDepartmentForm(false)} 
-                                            disabled={addingDepartment}
-                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button 
-                                            type="submit" 
-                                            disabled={addingDepartment}
-                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
-                                        >
-                                            {addingDepartment && (
-                                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                            )}
-                                            {addingDepartment ? "Saving..." : "Save"}
-                                        </button>
-                                    </div>
-                                </FormContainer>
-                            )}
-                            {departments.length === 0 && !showDepartmentForm ? (
-                                <EmptyState message="No departments added yet" />
-                            ) : (
-                                <div className="space-y-2">
-                                    {departments.map((dept) => (
-                                        <ItemCard
-                                            key={dept.id}
-                                            colorScheme="blue"
-                                            icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}
-                                            title={dept.department_name}
-                                            subtitle={dept.hod_name ? `HOD: ${dept.hod_name}` : null}
-                                            onDelete={() => deleteDepartment(dept.id)}
-                                            isDeleting={deletingItem === dept.id}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </SectionCard>
-
-                        {/* PROGRAMS SECTION */}
-                        <SectionCard title="Academic Programs" onAdd={() => setShowProgramForm(!showProgramForm)}>
-                            {showProgramForm && (
-                                <FormContainer onSubmit={addProgram}>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label>Program Level *</Label>
-                                            <select
-                                                required
-                                                value={programForm.program_level}
-                                                onChange={(e) => setProgramForm({ ...programForm, program_level: e.target.value })}
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5"
-                                            >
-                                                <option value="">Select level</option>
-                                                {PROGRAM_LEVELS.map((level) => (
-                                                    <option key={level} value={level}>{level}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <Label>Program Name *</Label>
-                                            <Input
-                                                required
-                                                value={programForm.program_name}
-                                                onChange={(e) => setProgramForm({ ...programForm, program_name: e.target.value })}
-                                                placeholder="e.g., B.Tech Computer Science"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label>Department</Label>
-                                            <Input
-                                                value={programForm.department}
-                                                onChange={(e) => setProgramForm({ ...programForm, department: e.target.value })}
-                                                placeholder="Department name"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label>Duration (Years)</Label>
-                                            <Input
-                                                type="number"
-                                                value={programForm.duration_years}
-                                                onChange={(e) => setProgramForm({ ...programForm, duration_years: e.target.value })}
-                                                placeholder="e.g., 4"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label>Annual Fees</Label>
-                                            <Input
-                                                value={programForm.annual_fees}
-                                                onChange={(e) => setProgramForm({ ...programForm, annual_fees: e.target.value })}
-                                                placeholder="e.g., 150000"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label>Total Seats</Label>
-                                            <Input
-                                                type="number"
-                                                value={programForm.total_seats}
-                                                onChange={(e) => setProgramForm({ ...programForm, total_seats: e.target.value })}
-                                                placeholder="e.g., 60"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                    </div>
+                        {/* DEGREES SECTION */}
+                        <SectionCard title="Degrees Offered" onAdd={() => setShowDegreeForm(!showDegreeForm)}>
+                            {showDegreeForm && (
+                                <FormContainer onSubmit={addDegree}>
                                     <div>
-                                        <Label>Eligibility</Label>
+                                        <Label>Degree Name *</Label>
                                         <Input
-                                            value={programForm.eligibility}
-                                            onChange={(e) => setProgramForm({ ...programForm, eligibility: e.target.value })}
-                                            placeholder="e.g., 10+2 with PCM"
+                                            required
+                                            value={degreeForm.degree_name}
+                                            onChange={(e) => setDegreeForm({ degree_name: e.target.value })}
+                                            placeholder="e.g., B.Tech Computer Science, MBA, M.Sc Physics"
                                             className="mt-1.5"
                                         />
                                     </div>
                                     <div className="flex gap-3 justify-end">
                                         <button 
                                             type="button" 
-                                            onClick={() => setShowProgramForm(false)} 
-                                            disabled={addingProgram}
+                                            onClick={() => setShowDegreeForm(false)} 
+                                            disabled={addingDegree}
                                             className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
                                         >
                                             Cancel
                                         </button>
                                         <button 
                                             type="submit" 
-                                            disabled={addingProgram}
+                                            disabled={addingDegree}
                                             className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
                                         >
-                                            {addingProgram && (
+                                            {addingDegree && (
                                                 <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                 </svg>
                                             )}
-                                            {addingProgram ? "Saving..." : "Save"}
+                                            {addingDegree ? "Saving..." : "Save"}
                                         </button>
                                     </div>
                                 </FormContainer>
                             )}
-                            {programs.length === 0 && !showProgramForm ? (
-                                <EmptyState message="No programs added yet" />
+                            {degrees.length === 0 && !showDegreeForm ? (
+                                <EmptyState message="No degrees added yet" />
                             ) : (
                                 <div className="space-y-2">
-                                    {programs.map((prog) => (
+                                    {degrees.map((deg) => (
                                         <ItemCard
-                                            key={prog.id}
-                                            colorScheme="purple"
-                                            icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>}
-                                            title={prog.program_name}
-                                            subtitle={`${prog.program_level}${prog.department ? ` • ${prog.department}` : ''}`}
-                                            description={`Duration: ${prog.duration_years || 'N/A'} years • Fees: ₹${prog.annual_fees || 'N/A'} • Seats: ${prog.total_seats || 'N/A'}`}
-                                            onDelete={() => deleteProgram(prog.id)}
-                                            isDeleting={deletingItem === prog.id}
+                                            key={deg.id}
+                                            colorScheme="blue"
+                                            icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>}
+                                            title={deg.degree_name}
+                                            onDelete={() => deleteDegree(deg.id)}
+                                            isDeleting={deletingItem === deg.id}
                                         />
                                     ))}
                                 </div>
@@ -1243,174 +970,50 @@ export default function UniversityProfile() {
                             )}
                         </SectionCard>
 
-                        {/* RESEARCH SECTION */}
-                        <SectionCard title="Research & Publications" onAdd={() => setShowResearchForm(!showResearchForm)}>
-                            {showResearchForm && (
-                                <FormContainer onSubmit={addResearch}>
-                                    <div>
-                                        <Label>Research Title *</Label>
-                                        <Input
-                                            required
-                                            value={researchForm.research_title}
-                                            onChange={(e) => setResearchForm({ ...researchForm, research_title: e.target.value })}
-                                            placeholder="Title of research work"
-                                            className="mt-1.5"
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <Label>Research Area</Label>
-                                            <Input
-                                                value={researchForm.area}
-                                                onChange={(e) => setResearchForm({ ...researchForm, area: e.target.value })}
-                                                placeholder="e.g., Artificial Intelligence"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label>Publication Year</Label>
-                                            <Input
-                                                type="number"
-                                                value={researchForm.publication_year}
-                                                onChange={(e) => setResearchForm({ ...researchForm, publication_year: e.target.value })}
-                                                placeholder="2024"
-                                                className="mt-1.5"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <Label>Description</Label>
-                                        <textarea
-                                            className="w-full border border-gray-300 rounded-lg p-3 mt-1.5 min-h-[100px]"
-                                            value={researchForm.description}
-                                            onChange={(e) => setResearchForm({ ...researchForm, description: e.target.value })}
-                                            placeholder="Brief description of the research work"
-                                        />
-                                    </div>
-                                    <div className="flex gap-3 justify-end">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setShowResearchForm(false)} 
-                                            disabled={addingResearch}
-                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button 
-                                            type="submit" 
-                                            disabled={addingResearch}
-                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
-                                        >
-                                            {addingResearch && (
-                                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                            )}
-                                            {addingResearch ? "Saving..." : "Save"}
-                                        </button>
-                                    </div>
-                                </FormContainer>
-                            )}
-                            {research.length === 0 && !showResearchForm ? (
-                                <EmptyState message="No research publications added yet" />
-                            ) : (
-                                <div className="space-y-2">
-                                    {research.map((res) => (
-                                        <ItemCard
-                                            key={res.id}
-                                            colorScheme="indigo"
-                                            icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
-                                            title={res.research_title}
-                                            subtitle={res.area}
-                                            period={res.publication_year}
-                                            description={res.description}
-                                            onDelete={() => deleteResearch(res.id)}
-                                            isDeleting={deletingItem === res.id}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </SectionCard>
-
-                        {/* FACILITIES SECTION */}
-                        <SectionCard title="Facilities" onAdd={() => setShowFacilityForm(!showFacilityForm)}>
-                            {showFacilityForm && (
-                                <FormContainer onSubmit={addFacility}>
-                                    <div>
-                                        <Label>Facility Name *</Label>
-                                        <select
-                                            required
-                                            value={facilityForm.facility_name}
-                                            onChange={(e) => setFacilityForm({ facility_name: e.target.value })}
-                                            className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5"
-                                        >
-                                            <option value="">Select facility</option>
-                                            {FACILITY_OPTIONS.map((fac) => (
-                                                <option key={fac} value={fac}>{fac}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="flex gap-3 justify-end">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setShowFacilityForm(false)} 
-                                            disabled={addingFacility}
-                                            className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg disabled:opacity-50"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button 
-                                            type="submit" 
-                                            disabled={addingFacility}
-                                            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 flex items-center gap-2"
-                                        >
-                                            {addingFacility && (
-                                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                            )}
-                                            {addingFacility ? "Adding..." : "Add"}
-                                        </button>
-                                    </div>
-                                </FormContainer>
-                            )}
-                            {facilities.length === 0 && !showFacilityForm ? (
-                                <EmptyState message="No facilities added yet" />
-                            ) : (
-                                <div className="flex flex-wrap gap-2">
-                                    {facilities.map((fac) => (
-                                        <div
-                                            key={fac.id}
-                                            className="bg-blue-50 border border-blue-200 px-4 py-2 rounded-full flex items-center gap-2 hover:bg-blue-100 transition-colors group"
-                                        >
-                                            <span className="text-sm font-medium text-blue-900">{fac.facility_name}</span>
-                                            <button
-                                                onClick={() => deleteFacility(fac.id)}
-                                                disabled={deletingItem === fac.id}
-                                                className="text-blue-700 hover:text-blue-900 opacity-70 group-hover:opacity-100 disabled:opacity-50"
-                                            >
-                                                {deletingItem === fac.id ? (
-                                                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                ) : (
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                )}
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </SectionCard>
+                        {/* FACILITIES SECTION - Removed */}
+                        {/* RESEARCH SECTION - Removed */}
                     </div>
 
                     {/* RIGHT COLUMN - SIDEBAR */}
                     <div className="space-y-6">
+
+                        {/* QR Code Card */}
+                        <SectionCard title="Student Referral QR">
+                            {qrLoading ? (
+                                <div className="flex justify-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                </div>
+                            ) : qrCode ? (
+                                <div className="space-y-3">
+                                    <div className="bg-white p-3 rounded-lg border-2 border-gray-200 flex justify-center">
+                                        <img 
+                                            src={qrCode.qrCode} 
+                                            alt="Registration QR Code" 
+                                            className="w-full max-w-50"
+                                        />
+                                    </div>
+                                    <p className="text-xs text-gray-600 text-center">
+                                        Scan to register with your referral code
+                                    </p>
+                                    <Button 
+                                        onClick={downloadQRCode} 
+                                        className="w-full" 
+                                        size="sm"
+                                    >
+                                        📥 Download QR Code
+                                    </Button>
+                                    <div className="bg-gray-50 p-2 rounded text-xs">
+                                        <p className="text-gray-500 mb-1">Referral Code:</p>
+                                        <p className="font-mono text-gray-800 break-all">{qrCode.referralCode}</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500 text-center py-4">
+                                    Complete your profile to generate QR code
+                                </p>
+                            )}
+                        </SectionCard>
+
                         <SectionCard title="Quick Info">
                             <div className="space-y-4">
                                 <InfoDisplay 
@@ -1481,15 +1084,6 @@ export default function UniversityProfile() {
                                             {university.vice_chancellor_phone}
                                         </a>
                                     )}
-                                </div>
-                            </SectionCard>
-                        )}
-
-                        {university.referral_code && (
-                            <SectionCard title="Referral Code">
-                                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-white">
-                                    <p className="text-2xl font-bold tracking-wider mb-2">{university.referral_code}</p>
-                                    <p className="text-sm text-blue-100">Share this code with students</p>
                                 </div>
                             </SectionCard>
                         )}

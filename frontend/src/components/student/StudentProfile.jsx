@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
@@ -85,7 +85,7 @@ export default function StudentProfile() {
 
     const fetchProfile = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/student`, {
+            const res = await fetch(`${API_URL}/student`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
@@ -126,7 +126,7 @@ export default function StudentProfile() {
         if (savingProfile) return; // Prevent duplicate submissions
         setSavingProfile(true);
         try {
-            const { ok } = await apiCall(`${API_URL}/api/student`, "PUT", profile);
+            const { ok } = await apiCall(`${API_URL}/student`, "PUT", profile);
             if (ok) {
                 toast.success("Profile updated successfully!");
                 setEditingIntro(false);
@@ -145,7 +145,7 @@ export default function StudentProfile() {
         if (savingEducation) return; // Prevent duplicate submissions
         setSavingEducation(true);
         try {
-            const { ok } = await apiCall(`${API_URL}/api/student/education`, "POST", educationForm);
+            const { ok } = await apiCall(`${API_URL}/student/education`, "POST", educationForm);
             if (ok) {
                 toast.success("Education added");
                 setShowEducationForm(false);
@@ -161,7 +161,7 @@ export default function StudentProfile() {
         if (deletingItem === `edu-${id}`) return; // Prevent duplicate deletions
         setDeletingItem(`edu-${id}`);
         try {
-            const { ok } = await apiCall(`${API_URL}/api/student/education/${id}`, "DELETE");
+            const { ok } = await apiCall(`${API_URL}/student/education/${id}`, "DELETE");
             if (ok) { toast.success("Deleted"); fetchProfile(); }
         } finally {
             setDeletingItem(null);
@@ -173,7 +173,7 @@ export default function StudentProfile() {
         if (savingExperience) return; // Prevent duplicate submissions
         setSavingExperience(true);
         try {
-            const { ok } = await apiCall(`${API_URL}/api/student/experience`, "POST", experienceForm);
+            const { ok } = await apiCall(`${API_URL}/student/experience`, "POST", experienceForm);
             if (ok) {
                 toast.success("Experience added");
                 setShowExperienceForm(false);
@@ -189,7 +189,7 @@ export default function StudentProfile() {
         if (deletingItem === `exp-${id}`) return; // Prevent duplicate deletions
         setDeletingItem(`exp-${id}`);
         try {
-            const { ok } = await apiCall(`${API_URL}/api/student/experience/${id}`, "DELETE");
+            const { ok } = await apiCall(`${API_URL}/student/experience/${id}`, "DELETE");
             if (ok) { toast.success("Deleted"); fetchProfile(); }
         } finally {
             setDeletingItem(null);
@@ -211,7 +211,7 @@ export default function StudentProfile() {
         if (savingSkill) return; // Prevent duplicate submissions
         setSavingSkill(true);
         try {
-            const { ok } = await apiCall(`${API_URL}/api/student/skills`, "POST", skillForm);
+            const { ok } = await apiCall(`${API_URL}/student/skills`, "POST", skillForm);
             if (ok) {
                 toast.success("Skill added");
                 setShowSkillForm(false);
@@ -228,7 +228,7 @@ export default function StudentProfile() {
         if (deletingItem === `skill-${skill_id}`) return; // Prevent duplicate deletions
         setDeletingItem(`skill-${skill_id}`);
         try {
-            const { ok } = await apiCall(`${API_URL}/api/student/skills/${skill_id}`, "DELETE");
+            const { ok } = await apiCall(`${API_URL}/student/skills/${skill_id}`, "DELETE");
             if (ok) { toast.success("Deleted"); fetchProfile(); }
         } finally {
             setDeletingItem(null);
@@ -240,7 +240,7 @@ export default function StudentProfile() {
         if (savingCertification) return; // Prevent duplicate submissions
         setSavingCertification(true);
         try {
-            const { ok } = await apiCall(`${API_URL}/api/student/certifications`, "POST", certificationForm);
+            const { ok } = await apiCall(`${API_URL}/student/certifications`, "POST", certificationForm);
             if (ok) {
                 toast.success("Certification added");
                 setShowCertificationForm(false);
@@ -256,7 +256,7 @@ export default function StudentProfile() {
         if (deletingItem === `cert-${id}`) return; // Prevent duplicate deletions
         setDeletingItem(`cert-${id}`);
         try {
-            const { ok } = await apiCall(`${API_URL}/api/student/certifications/${id}`, "DELETE");
+            const { ok } = await apiCall(`${API_URL}/student/certifications/${id}`, "DELETE");
             if (ok) { toast.success("Deleted"); fetchProfile(); }
         } finally {
             setDeletingItem(null);
@@ -272,7 +272,7 @@ export default function StudentProfile() {
         try {
             const formData = new FormData();
             formData.append(type === 'profile' ? 'profileImage' : 'bannerImage', file);
-            const res = await fetch(`${API_URL}/api/student/media`, {
+            const res = await fetch(`${API_URL}/student/media`, {
                 method: "PATCH",
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
@@ -298,7 +298,7 @@ export default function StudentProfile() {
 
     const clearImages = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/student/media/clear`, {
+            const res = await fetch(`${API_URL}/student/media/clear`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -938,7 +938,7 @@ export default function StudentProfile() {
                                             }
                                             title={cert.name}
                                             subtitle={cert.issuing_organization}
-                                            period={`Issued ${formatDate(cert.issue_date)}${cert.expiry_date ? ` · Expires ${formatDate(cert.expiry_date)}` : ''}`}
+                                            period={`Issued ${formatDate(cert.issue_date)}${cert.expiry_date ? ` � Expires ${formatDate(cert.expiry_date)}` : ''}`}
                                             description={cert.credential_id ? `Credential ID: ${cert.credential_id}` : null}
                                             link={cert.credential_url ? { url: cert.credential_url, text: "Show credential" } : null}
                                             onDelete={() => deleteCertification(cert.id)}
