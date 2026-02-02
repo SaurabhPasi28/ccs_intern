@@ -8,6 +8,14 @@ const ensureDir = async (dirPath) => {
     await fs.promises.mkdir(dirPath, { recursive: true });
 };
 
+// Helper function to extract public_id from Cloudinary URL
+const extractPublicId = (url) => {
+    if (!url) return null;
+    const parts = url.split('/');
+    const publicId = parts.slice(parts.indexOf('ccs')).join('/').replace(/\.[^/.]+$/, '');
+    return publicId;
+};
+
 // Get school profile and related data
 exports.getSchool = async (req, res) => {
     try {
@@ -86,7 +94,26 @@ exports.updateSchool = async (req, res) => {
             teacher_count,
         } = req.body;
 
-        if (!name) {
+        let resolvedName = name;
+
+        if (!resolvedName) {
+            const existingSchool = await pool.query(
+                "SELECT name FROM schools WHERE user_id = $1",
+                [userId]
+            );
+
+            if (existingSchool.rows.length && existingSchool.rows[0].name) {
+                resolvedName = existingSchool.rows[0].name;
+            } else {
+                const userResult = await pool.query(
+                    "SELECT name FROM users WHERE id = $1",
+                    [userId]
+                );
+                resolvedName = userResult.rows[0]?.name || "";
+            }
+        }
+
+        if (!resolvedName) {
             return res.status(400).json({ message: "School name is required" });
         }
 
@@ -121,7 +148,7 @@ exports.updateSchool = async (req, res) => {
             RETURNING *`,
             [
                 userId,
-                name,
+                resolvedName,
                 established_year || null,
                 board || null,
                 affiliation || null,
@@ -220,14 +247,6 @@ exports.uploadSchoolMedia = [
         }
     },
 ];
-
-// Helper function to extract public_id from Cloudinary URL
-const extractPublicId = (url) => {
-    if (!url) return null;
-    const parts = url.split('/');
-    const publicId = parts.slice(parts.indexOf('ccs')).join('/').replace(/\.[^/.]+$/, '');
-    return publicId;
-};
 
 // Add facility
 exports.addFacility = async (req, res) => {

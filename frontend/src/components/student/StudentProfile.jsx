@@ -1,4 +1,3 @@
-﻿
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -57,7 +56,7 @@ export default function StudentProfile() {
 
     const fetchProfile = async () => {
         try {
-            const res = await fetch("http://localhost:5000/api/profile", {
+            const res = await fetch(`${API_URL}/student`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
@@ -95,47 +94,77 @@ export default function StudentProfile() {
     };
 
     const updateProfile = async () => {
-        const { ok } = await apiCall("http://localhost:5000/api/profile", "PUT", profile);
-        if (ok) {
-            toast.success("Profile updated successfully!");
-            setEditingIntro(false);
-            setEditingAbout(false);
-            fetchProfile();
-        } else {
-            toast.error("Failed to update");
+        if (savingProfile) return; // Prevent duplicate submissions
+        setSavingProfile(true);
+        try {
+            const { ok } = await apiCall(`${API_URL}/student`, "PUT", profile);
+            if (ok) {
+                toast.success("Profile updated successfully!");
+                setEditingIntro(false);
+                setEditingAbout(false);
+                fetchProfile();
+            } else {
+                toast.error("Failed to update");
+            }
+        } finally {
+            setSavingProfile(false);
         }
     };
 
     const addEducation = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall("http://localhost:5000/api/profile/education", "POST", educationForm);
-        if (ok) {
-            toast.success("Education added");
-            setShowEducationForm(false);
-            setEducationForm({ degree: "", field_of_study: "", institution: "", start_year: "", end_year: "", is_current: false });
-            fetchProfile();
-        } else toast.error("Failed to add education");
+        if (savingEducation) return; // Prevent duplicate submissions
+        setSavingEducation(true);
+        try {
+            const { ok } = await apiCall(`${API_URL}/student/education`, "POST", educationForm);
+            if (ok) {
+                toast.success("Education added");
+                setShowEducationForm(false);
+                setEducationForm({ degree: "", field_of_study: "", institution: "", start_year: "", end_year: "", is_current: false });
+                fetchProfile();
+            } else toast.error("Failed to add education");
+        } finally {
+            setSavingEducation(false);
+        }
     };
 
     const deleteEducation = async (id) => {
-        const { ok } = await apiCall(`http://localhost:5000/api/profile/education/${id}`, "DELETE");
-        if (ok) { toast.success("Deleted"); fetchProfile(); }
+        if (deletingItem === `edu-${id}`) return; // Prevent duplicate deletions
+        setDeletingItem(`edu-${id}`);
+        try {
+            const { ok } = await apiCall(`${API_URL}/student/education/${id}`, "DELETE");
+            if (ok) { toast.success("Deleted"); fetchProfile(); }
+        } finally {
+            setDeletingItem(null);
+        }
     };
 
     const addExperience = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall("http://localhost:5000/api/profile/experience", "POST", experienceForm);
-        if (ok) {
-            toast.success("Experience added");
-            setShowExperienceForm(false);
-            setExperienceForm({ title: "", company: "", start_date: "", end_date: "", is_current: false, description: "" });
-            fetchProfile();
-        } else toast.error("Failed to add experience");
+        if (savingExperience) return; // Prevent duplicate submissions
+        setSavingExperience(true);
+        try {
+            const { ok } = await apiCall(`${API_URL}/student/experience`, "POST", experienceForm);
+            if (ok) {
+                toast.success("Experience added");
+                setShowExperienceForm(false);
+                setExperienceForm({ title: "", company: "", start_date: "", end_date: "", is_current: false, description: "" });
+                fetchProfile();
+            } else toast.error("Failed to add experience");
+        } finally {
+            setSavingExperience(false);
+        }
     };
 
     const deleteExperience = async (id) => {
-        const { ok } = await apiCall(`http://localhost:5000/api/profile/experience/${id}`, "DELETE");
-        if (ok) { toast.success("Deleted"); fetchProfile(); }
+        if (deletingItem === `exp-${id}`) return; // Prevent duplicate deletions
+        setDeletingItem(`exp-${id}`);
+        try {
+            const { ok } = await apiCall(`${API_URL}/student/experience/${id}`, "DELETE");
+            if (ok) { toast.success("Deleted"); fetchProfile(); }
+        } finally {
+            setDeletingItem(null);
+        }
     };
 
     const handleSkillSelect = (value) => {
@@ -150,35 +179,59 @@ export default function StudentProfile() {
 
     const addSkill = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall("http://localhost:5000/api/profile/skills", "POST", skillForm);
-        if (ok) {
-            toast.success("Skill added");
-            setShowSkillForm(false);
-            setSkillForm({ skill_name: "" });
-            setCustomSkillMode(false);
-            fetchProfile();
-        } else toast.error("Failed to add skill");
+        if (savingSkill) return; // Prevent duplicate submissions
+        setSavingSkill(true);
+        try {
+            const { ok } = await apiCall(`${API_URL}/student/skills`, "POST", skillForm);
+            if (ok) {
+                toast.success("Skill added");
+                setShowSkillForm(false);
+                setSkillForm({ skill_name: "" });
+                setCustomSkillMode(false);
+                fetchProfile();
+            } else toast.error("Failed to add skill");
+        } finally {
+            setSavingSkill(false);
+        }
     };
 
     const deleteSkill = async (skill_id) => {
-        const { ok } = await apiCall(`http://localhost:5000/api/profile/skills/${skill_id}`, "DELETE");
-        if (ok) { toast.success("Deleted"); fetchProfile(); }
+        if (deletingItem === `skill-${skill_id}`) return; // Prevent duplicate deletions
+        setDeletingItem(`skill-${skill_id}`);
+        try {
+            const { ok } = await apiCall(`${API_URL}/student/skills/${skill_id}`, "DELETE");
+            if (ok) { toast.success("Deleted"); fetchProfile(); }
+        } finally {
+            setDeletingItem(null);
+        }
     };
 
     const addCertification = async (e) => {
         e.preventDefault();
-        const { ok } = await apiCall("http://localhost:5000/api/profile/certifications", "POST", certificationForm);
-        if (ok) {
-            toast.success("Certification added");
-            setShowCertificationForm(false);
-            setCertificationForm({ name: "", issuing_organization: "", issue_date: "", expiry_date: "", credential_id: "", credential_url: "" });
-            fetchProfile();
-        } else toast.error("Failed to add certification");
+        if (savingCertification) return; // Prevent duplicate submissions
+        setSavingCertification(true);
+        try {
+            const { ok } = await apiCall(`${API_URL}/student/certifications`, "POST", certificationForm);
+            if (ok) {
+                toast.success("Certification added");
+                setShowCertificationForm(false);
+                setCertificationForm({ name: "", issuing_organization: "", issue_date: "", expiry_date: "", credential_id: "", credential_url: "" });
+                fetchProfile();
+            } else toast.error("Failed to add certification");
+        } finally {
+            setSavingCertification(false);
+        }
     };
 
     const deleteCertification = async (id) => {
-        const { ok } = await apiCall(`http://localhost:5000/api/profile/certifications/${id}`, "DELETE");
-        if (ok) { toast.success("Deleted"); fetchProfile(); }
+        if (deletingItem === `cert-${id}`) return; // Prevent duplicate deletions
+        setDeletingItem(`cert-${id}`);
+        try {
+            const { ok } = await apiCall(`${API_URL}/student/certifications/${id}`, "DELETE");
+            if (ok) { toast.success("Deleted"); fetchProfile(); }
+        } finally {
+            setDeletingItem(null);
+        }
     };
 
     const handleImageUpload = async (file, type) => {
@@ -187,7 +240,7 @@ export default function StudentProfile() {
         try {
             const formData = new FormData();
             formData.append(type === 'profile' ? 'profileImage' : 'bannerImage', file);
-            const res = await fetch("http://localhost:5000/api/profile/media", {
+            const res = await fetch(`${API_URL}/student/media`, {
                 method: "PATCH",
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
@@ -213,7 +266,7 @@ export default function StudentProfile() {
 
     const clearImages = async () => {
         try {
-            const res = await fetch("http://localhost:5000/api/profile/media/clear", {
+            const res = await fetch(`${API_URL}/student/media/clear`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -632,33 +685,19 @@ export default function StudentProfile() {
                                                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                                                 </svg>
-                                            </div>
-                                            <div className="flex-1">
-                                                <h3 className="font-semibold text-lg text-gray-900">{cert.name}</h3>
-                                                <p className="text-gray-700">{cert.issuing_organization}</p>
-                                                <p className="text-sm text-gray-500 mt-1">Issued {cert.issue_date}
-                                                    {cert.expiry_date && ` · Expires ${cert.expiry_date}`}</p>
-                                                {cert.credential_id && <p className="text-sm text-gray-600 mt-1">Credential ID: {cert.credential_id}</p>}
-                                                {cert.credential_url && (
-                                                    <a href={cert.credential_url} target="_blank" rel="noopener noreferrer"
-                                                        className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1 mt-1">
-                                                        Show credential
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                        </svg>
-                                                    </a>
-                                                )}
-                                            </div>
-                                            <button onClick={() => deleteCertification(cert.id)} className="p-2 hover:bg-red-50 rounded-full h-fit transition">
-                                                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
+                                            }
+                                            title={cert.name}
+                                            subtitle={cert.issuing_organization}
+                                            period={`Issued ${formatDate(cert.issue_date)}${cert.expiry_date ? ` · Expires ${formatDate(cert.expiry_date)}` : ''}`}
+                                            description={cert.credential_id ? `Credential ID: ${cert.credential_id}` : null}
+                                            link={cert.credential_url ? { url: cert.credential_url, text: "Show credential" } : null}
+                                            onDelete={() => deleteCertification(cert.id)}
+                                            isDeleting={deletingItem === `cert-${cert.id}`}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </SectionCard>
                     </div>
 
                     <div className="space-y-4">

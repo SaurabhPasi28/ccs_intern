@@ -1,46 +1,37 @@
 const express = require("express");
 const router = express.Router();
-const { verifyToken } = require("../middleware/authMiddleware");
+const authMiddleware = require("../middleware/authMiddleware");
 const universityController = require("../controllers/universityController");
 
 // Get university profile
-// router.get("/", verifyToken, universityController.getUniversity);
+router.get("/", authMiddleware, universityController.getUniversity);
 
-// // Update university basic info
-// router.put("/", verifyToken, universityController.updateUniversity);
+// Update university basic info
+router.put("/", authMiddleware, universityController.updateUniversity);
 
-// // Upload university media (logo and banner) - uploadUniversityMedia is now an array with multer middleware
-// router.patch(
-//     "/media",
-//     verifyToken,
-//     ...universityController.uploadUniversityMedia
-// );
+// Upload university media (logo and banner)
+router.patch(
+	"/media",
+	authMiddleware,
+	...universityController.uploadUniversityMedia
+);
 
-// // Department routes
-// router.post("/departments", verifyToken, universityController.addDepartment);
-// router.delete("/departments/:id", verifyToken, universityController.deleteDepartment);
+// Clear university media
+router.delete("/media/clear", authMiddleware, universityController.clearUniversityMedia);
 
-// // Program routes
-// router.post("/programs", verifyToken, universityController.addProgram);
-// router.delete("/programs/:id", verifyToken, universityController.deleteProgram);
+// QR Code generation
+router.get("/qrcode", authMiddleware, universityController.generateQRCode);
 
-// // Facility routes
-// router.post("/facilities", verifyToken, universityController.addFacility);
-// router.delete("/facilities/:id", verifyToken, universityController.deleteFacility);
+// Degree routes
+router.post("/degrees", authMiddleware, universityController.addDegree);
+router.delete("/degrees/:id", authMiddleware, universityController.deleteDegree);
 
-// // Placement routes
-// router.post("/placements", verifyToken, universityController.addPlacement);
-// router.delete("/placements/:id", verifyToken, universityController.deletePlacement);
+// Placement routes
+router.post("/placements", authMiddleware, universityController.addPlacement);
+router.delete("/placements/:id", authMiddleware, universityController.deletePlacement);
 
-// // Ranking routes
-// router.post("/rankings", verifyToken, universityController.addRanking);
-// router.delete("/rankings/:id", verifyToken, universityController.deleteRanking);
-
-// // Research routes
-// router.post("/research", verifyToken, universityController.addResearch);
-// router.delete("/research/:id", verifyToken, universityController.deleteResearch);
-
-// module.exports = router;
-// router.delete("/research/:id", verifyToken, universityController.deleteResearch);
+// Ranking routes
+router.post("/rankings", authMiddleware, universityController.addRanking);
+router.delete("/rankings/:id", authMiddleware, universityController.deleteRanking);
 
 module.exports = router;

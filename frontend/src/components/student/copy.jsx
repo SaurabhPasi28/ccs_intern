@@ -68,7 +68,7 @@
 
 //     const fetchProfile = async () => {
 //         try {
-//             const res = await fetch(`${API_URL}/api/student`, {
+//             const res = await fetch(`${API_URL}/student`, {
 //                 headers: { Authorization: `Bearer ${token}` },
 //             });
 //             const data = await res.json();
@@ -106,7 +106,7 @@
 //     };
 
 //     const updateProfile = async () => {
-//         const { ok } = await apiCall(`${API_URL}/api/student`, "PUT", profile);
+//         const { ok } = await apiCall(`${API_URL}/student`, "PUT", profile);
 //         if (ok) {
 //             toast.success("Profile updated successfully!");
 //             setEditingIntro(false);
@@ -119,7 +119,7 @@
 
 //     const addEducation = async (e) => {
 //         e.preventDefault();
-//         const { ok } = await apiCall(`${API_URL}/api/student/education`, "POST", educationForm);
+//         const { ok } = await apiCall(`${API_URL}/student/education`, "POST", educationForm);
 //         if (ok) {
 //             toast.success("Education added");
 //             setShowEducationForm(false);
@@ -129,13 +129,13 @@
 //     };
 
 //     const deleteEducation = async (id) => {
-//         const { ok } = await apiCall(`${API_URL}/api/student/education/${id}`, "DELETE");
+//         const { ok } = await apiCall(`${API_URL}/student/education/${id}`, "DELETE");
 //         if (ok) { toast.success("Deleted"); fetchProfile(); }
 //     };
 
 //     const addExperience = async (e) => {
 //         e.preventDefault();
-//         const { ok } = await apiCall(`${API_URL}/api/student/experience`, "POST", experienceForm);
+//         const { ok } = await apiCall(`${API_URL}/student/experience`, "POST", experienceForm);
 //         if (ok) {
 //             toast.success("Experience added");
 //             setShowExperienceForm(false);
@@ -145,7 +145,7 @@
 //     };
 
 //     const deleteExperience = async (id) => {
-//         const { ok } = await apiCall(`${API_URL}/api/student/experience/${id}`, "DELETE");
+//         const { ok } = await apiCall(`${API_URL}/student/experience/${id}`, "DELETE");
 //         if (ok) { toast.success("Deleted"); fetchProfile(); }
 //     };
 
@@ -161,7 +161,7 @@
 
 //     const addSkill = async (e) => {
 //         e.preventDefault();
-//         const { ok } = await apiCall(`${API_URL}/api/student/skills`, "POST", skillForm);
+//         const { ok } = await apiCall(`${API_URL}/student/skills`, "POST", skillForm);
 //         if (ok) {
 //             toast.success("Skill added");
 //             setShowSkillForm(false);
@@ -172,13 +172,13 @@
 //     };
 
 //     const deleteSkill = async (skill_id) => {
-//         const { ok } = await apiCall(`${API_URL}/api/student/skills/${skill_id}`, "DELETE");
+//         const { ok } = await apiCall(`${API_URL}/student/skills/${skill_id}`, "DELETE");
 //         if (ok) { toast.success("Deleted"); fetchProfile(); }
 //     };
 
 //     const addCertification = async (e) => {
 //         e.preventDefault();
-//         const { ok } = await apiCall(`${API_URL}/api/student/certifications`, "POST", certificationForm);
+//         const { ok } = await apiCall(`${API_URL}/student/certifications`, "POST", certificationForm);
 //         if (ok) {
 //             toast.success("Certification added");
 //             setShowCertificationForm(false);
@@ -188,7 +188,7 @@
 //     };
 
 //     const deleteCertification = async (id) => {
-//         const { ok } = await apiCall(`${API_URL}/api/student/certifications/${id}`, "DELETE");
+//         const { ok } = await apiCall(`${API_URL}/student/certifications/${id}`, "DELETE");
 //         if (ok) { toast.success("Deleted"); fetchProfile(); }
 //     };
 
@@ -198,7 +198,7 @@
 //         try {
 //             const formData = new FormData();
 //             formData.append(type === 'profile' ? 'profileImage' : 'bannerImage', file);
-//             const res = await fetch(`${API_URL}/api/student/media`, {
+//             const res = await fetch(`${API_URL}/student/media`, {
 //                 method: "PATCH",
 //                 headers: { Authorization: `Bearer ${token}` },
 //                 body: formData,
@@ -224,7 +224,7 @@
 
 //     const clearImages = async () => {
 //         try {
-//             const res = await fetch(`${API_URL}/api/student/media/clear`, {
+//             const res = await fetch(`${API_URL}/student/media/clear`, {
 //                 method: "DELETE",
 //                 headers: { Authorization: `Bearer ${token}` },
 //             });

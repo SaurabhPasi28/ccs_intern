@@ -259,31 +259,107 @@ export default function CompanyProfile() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* LEFT COLUMN - MAIN CONTENT */}
                     <div className="lg:col-span-2 space-y-4">
-                        {/* HEADER */}
-                        <div className="bg-white rounded-lg shadow overflow-visible">
-                            <div className="relative h-50 bg-gradient-to-br from-gray-700 via-gray-600 to-amber-700 border-b-4 border-white" style={bannerStyle}>
-                                <button
-                                    onClick={() => setShowEditMenu(!showEditMenu)}
-                                    className="absolute top-4 right-4 bg-white hover:bg-gray-100 p-2.5 rounded-full shadow-lg transition z-40"
-                                >
-                                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                    </svg>
-                                </button>
+                        {/* HEADER with ProfileHeader component */}
+                        <ProfileHeader
+                            profile={company}
+                            displayName={company.name || "Company Name"}
+                            API_URL={BACKEND_URL}
+                            showEditMenu={showEditMenu}
+                            setShowEditMenu={setShowEditMenu}
+                            handleImageUpload={handleImageUpload}
+                            clearImages={clearImages}
+                            setEditingIntro={() => {}}
+                            uploadingImage={uploadingImage}
+                        >
+                            <p className="text-base text-gray-700 mt-1">{company.industry || "Industry"}</p>
+                            <p className="text-sm text-gray-600 mt-2">
+                                {company.city && company.state ? `${company.city}, ${company.state}` : "Add your location"}
+                            </p>
+                        </ProfileHeader>
 
-                                {showEditMenu && (
-                                    <div className="absolute top-16 right-4 w-44 z-50 pointer-events-auto">
-                                        <div className="bg-white rounded-lg shadow-xl border overflow-hidden">
-                                            <div style={{ position: 'absolute', right: 12, top: -8, width: 0, height: 0, borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderBottom: '8px solid white', filter: 'drop-shadow(0 -1px 0 rgba(0,0,0,0.06))' }} />
-                                            <button className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-50" onClick={() => bannerInputRef.current?.click()}>
-                                                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 3l-4 4-4-4" /></svg>
-                                                <span className="text-sm">Update cover</span>
-                                            </button>
-                                            <button className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-50 text-red-600" onClick={() => deleteImage('banner')}>
-                                                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6" /></svg>
-                                                <span className="text-sm">Delete cover</span>
-                                            </button>
-                                            <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e.target.files?.[0], 'banner')} />
+                        {/* COMPANY INFO SECTION */}
+                        <SectionCard 
+                            title="Company Information"
+                            onAdd={editingCompany ? null : startEditingCompany}
+                            addLabel="Edit"
+                        >
+                            {editingCompany ? (
+                                <form onSubmit={(e) => { e.preventDefault(); saveCompany(); }} className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-700">Industry</Label>
+                                            <Input value={company.industry || ""} onChange={(e) => setCompany({ ...company, industry: e.target.value })} className="mt-1.5" />
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-700">Company Type</Label>
+                                            <select 
+                                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                                value={company.company_type} 
+                                                onChange={(e) => setCompany({ ...company, company_type: e.target.value })}
+                                            >
+                                                <option value="">Select</option>
+                                                {COMPANY_TYPES.map((t) => <option key={t}>{t}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-700">Founded Year</Label>
+                                            <Input value={company.founded_year || ""} onChange={(e) => setCompany({ ...company, founded_year: e.target.value })} className="mt-1.5" />
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-700">Headquarters</Label>
+                                            <Input value={company.headquarters || ""} onChange={(e) => setCompany({ ...company, headquarters: e.target.value })} className="mt-1.5" />
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-700">State</Label>
+                                            <select 
+                                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                                value={company.state} 
+                                                onChange={(e) => setCompany({ ...company, state: e.target.value, city: "" })}
+                                            >
+                                                <option value="">Select State</option>
+                                                {Object.keys(STATES_AND_CITIES).map((s) => <option key={s}>{s}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-700">City</Label>
+                                            <select 
+                                                className="w-full border border-gray-300 rounded-lg p-2.5 mt-1.5 disabled:bg-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                                value={company.city} 
+                                                disabled={!company.state} 
+                                                onChange={(e) => setCompany({ ...company, city: e.target.value })}
+                                            >
+                                                <option value="">Select City</option>
+                                                {(STATES_AND_CITIES[company.state] || []).map((c) => <option key={c}>{c}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-700">Address</Label>
+                                            <Input value={company.address || ""} onChange={(e) => setCompany({ ...company, address: e.target.value })} className="mt-1.5" />
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-700">Zip Code</Label>
+                                            <Input value={company.zipcode || ""} onChange={(e) => setCompany({ ...company, zipcode: e.target.value })} className="mt-1.5" />
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-700">Human Resources Email</Label>
+                                            <Input type="email" value={company.hr_email || ""} onChange={(e) => setCompany({ ...company, hr_email: e.target.value })} className="mt-1.5" />
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-700">Phone</Label>
+                                            <Input value={company.phone || ""} onChange={(e) => setCompany({ ...company, phone: e.target.value })} className="mt-1.5" />
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-medium text-gray-700">Website</Label>
+                                            <Input value={company.website || ""} onChange={(e) => setCompany({ ...company, website: e.target.value })} className="mt-1.5" />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <Label className="text-sm font-medium text-gray-700">Description</Label>
+                                            <textarea 
+                                                rows={4} 
+                                                className="w-full border border-gray-300 rounded-lg p-3 mt-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none" 
+                                                value={company.description || ""} 
+                                                onChange={(e) => setCompany({ ...company, description: e.target.value })} 
+                                            />
                                         </div>
                                     </div>
                                 )}
@@ -300,30 +376,32 @@ export default function CompanyProfile() {
                                                     <span className="text-5xl font-bold text-white">{company.name ? company.name.charAt(0).toUpperCase() : 'C'}</span>
                                                 </div>
                                             )}
-
-                                            <button ref={logoBtnRef} className="absolute bottom-2 right-2 bg-white hover:bg-gray-100 p-2 rounded-full shadow-lg transition z-30" onClick={toggleProfileMenu} aria-label="Edit logo">
-                                                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                </svg>
-                                            </button>
-
-                                            {showProfileMenu && (
-                                                <div
-                                                    className="z-50 pointer-events-auto"
-                                                    style={profileMenuStyle || { position: 'absolute', right: 0, bottom: '100%', marginBottom: '8px' }}
-                                                >
-                                                    <div className="bg-white rounded-lg shadow-lg border overflow-hidden">
-                                                        <div style={{ position: 'absolute', right: 12, top: -8, width: 0, height: 0, borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderBottom: '8px solid white', filter: 'drop-shadow(0 -1px 0 rgba(0,0,0,0.06))' }} />
-                                                        <button className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-50" onClick={() => logoInputRef.current?.click()}>
-                                                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v8" /></svg>
-                                                            <span className="text-sm">Update image</span>
-                                                        </button>
-                                                        <button className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-gray-50 text-red-600" onClick={() => deleteImage('logo')}>
-                                                            <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6" /></svg>
-                                                            <span className="text-sm">Delete image</span>
-                                                        </button>
-                                                    </div>
+                                            {savingCompany ? 'Saving...' : 'Save Changes'}
+                                        </button>
+                                    </div>
+                                </form>
+                            ) : (
+                                <div className="space-y-6">
+                                    {!hasCompany ? (
+                                        <EmptyState message="Click Edit to add company information" />
+                                    ) : (
+                                        <>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                                                <InfoItem label="Industry" value={company.industry} />
+                                                <InfoItem label="Company Type" value={company.company_type} />
+                                                <InfoItem label="Founded Year" value={company.founded_year} />
+                                                <InfoItem label="Headquarters" value={company.headquarters} />
+                                                <InfoItem label="Location" value={company.city && company.state ? `${company.city}, ${company.state}` : company.state || company.city} />
+                                                <InfoItem label="Address" value={company.address} />
+                                                <InfoItem label="Zip Code" value={company.zipcode} />
+                                                <InfoItem label="HR Email" value={company.hr_email} icon="email" />
+                                                <InfoItem label="Phone" value={company.phone} icon="phone" />
+                                                <InfoItem label="Website" value={company.website} icon="link" />
+                                            </div>
+                                            {company.description && (
+                                                <div className="pt-2 border-t border-gray-200">
+                                                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Description</h4>
+                                                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{company.description}</p>
                                                 </div>
                                             )}
 

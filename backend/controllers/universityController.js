@@ -1,6 +1,7 @@
-const pool = require("../db");
 const path = require("path");
 const fs = require("fs");
+const QRCode = require("qrcode");
+const pool = require("../db");
 const { imageUpload } = require("../middleware/upload");
 const { uploadToCloudinary, deleteFromCloudinary } = require("../utils/cloudinaryUpload");
 
@@ -22,7 +23,6 @@ const generateReferralCode = async () => {
     return `${makeCode()}${Math.floor(Math.random() * 10)}`.slice(0, 6);
 };
 
-// Get university profile and related data
 exports.getUniversity = async (req, res) => {
     try {
         const userId = req.userId;
@@ -34,23 +34,9 @@ exports.getUniversity = async (req, res) => {
 
         const universityId = universityResult.rows[0]?.id || null;
 
-        const departments = universityId
+        const degrees = universityId
             ? (await pool.query(
-                  "SELECT * FROM university_departments WHERE university_id = $1 ORDER BY department_name",
-                  [universityId]
-              )).rows
-            : [];
-
-        const programs = universityId
-            ? (await pool.query(
-                  "SELECT * FROM university_programs WHERE university_id = $1 ORDER BY id DESC",
-                  [universityId]
-              )).rows
-            : [];
-
-        const facilities = universityId
-            ? (await pool.query(
-                  "SELECT * FROM university_facilities WHERE university_id = $1 ORDER BY facility_name",
+                  "SELECT * FROM university_degrees WHERE university_id = $1 ORDER BY id DESC",
                   [universityId]
               )).rows
             : [];
@@ -69,21 +55,11 @@ exports.getUniversity = async (req, res) => {
               )).rows
             : [];
 
-        const research = universityId
-            ? (await pool.query(
-                  "SELECT * FROM university_research WHERE university_id = $1 ORDER BY publication_year DESC NULLS LAST, id DESC",
-                  [universityId]
-              )).rows
-            : [];
-
         res.json({
             university: universityResult.rows[0] || null,
-            departments,
-            programs,
-            facilities,
+            degrees,
             placements,
             rankings,
-            research,
         });
     } catch (err) {
         console.error("GET UNIVERSITY ERROR:", err.message);
@@ -91,7 +67,6 @@ exports.getUniversity = async (req, res) => {
     }
 };
 
-// Update university basic info
 exports.updateUniversity = async (req, res) => {
     try {
         const userId = req.userId;
@@ -119,7 +94,7 @@ exports.updateUniversity = async (req, res) => {
             return res.status(400).json({ message: "University name is required" });
         }
 
-        // Check if university exists
+        // Check if university exists for referral code
         const existing = await pool.query(
             "SELECT referral_code FROM universities WHERE user_id = $1",
             [userId]
@@ -215,26 +190,20 @@ exports.uploadUniversityMedia = [
             let logoUrl = null;
             let bannerUrl = null;
 
-            /* LOGO - Upload to Cloudinary */
             if (logoFile) {
-                // Delete old logo if exists
                 if (university.logo_url) {
                     const oldPublicId = extractPublicId(university.logo_url);
                     if (oldPublicId) await deleteFromCloudinary(oldPublicId);
                 }
-
                 const result = await uploadToCloudinary(logoFile.buffer, "university", "logo");
                 logoUrl = result.secure_url;
             }
 
-            /* BANNER - Upload to Cloudinary */
             if (bannerFile) {
-                // Delete old banner if exists
                 if (university.banner_url) {
                     const oldPublicId = extractPublicId(university.banner_url);
                     if (oldPublicId) await deleteFromCloudinary(oldPublicId);
                 }
-
                 const result = await uploadToCloudinary(bannerFile.buffer, "university", "banner");
                 bannerUrl = result.secure_url;
             }
@@ -261,7 +230,6 @@ exports.uploadUniversityMedia = [
     },
 ];
 
-// Helper function to extract public_id from Cloudinary URL
 const extractPublicId = (url) => {
     if (!url) return null;
     const parts = url.split('/');
@@ -269,14 +237,80 @@ const extractPublicId = (url) => {
     return publicId;
 };
 
-// Add department
-exports.addDepartment = async (req, res) => {
+exports.clearUniversityMedia = async (req, res) => {
     try {
         const userId = req.userId;
-        const { department_name, hod_name } = req.body;
+        const universityResult = await pool.query("SELECT id FROM universities WHERE user_id = $1", [userId]);
+        const universityId = universityResult.rows[0]?.id;
+        if (!universityId) return res.status(400).json({ message: "No university profile" });
 
-        if (!department_name) {
-            return res.status(400).json({ message: "Department name is required" });
+        await pool.query(
+            "UPDATE universities SET logo_url = NULL, banner_url = NULL, updated_at = NOW() WHERE id = $1",
+            [universityId]
+        );
+
+        res.json({ message: "Media cleared" });
+    } catch (err) {
+        console.error("CLEAR UNIVERSITY MEDIA ERROR:", err.message);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+exports.generateQRCode = async (req, res) => {
+    try {
+        const userId = req.userId;
+
+        const universityResult = await pool.query(
+            "SELECT id, name, referral_code FROM universities WHERE user_id = $1",
+            [userId]
+        );
+
+        if (!universityResult.rows.length) {
+            return res.status(404).json({ message: "University profile not found" });
+        }
+
+        const universityId = universityResult.rows[0].id;
+        const universityName = universityResult.rows[0].name || "University";
+        let referralCode = universityResult.rows[0].referral_code;
+
+        if (!referralCode) {
+            referralCode = await generateReferralCode();
+            await pool.query(
+                "UPDATE universities SET referral_code = $1, updated_at = NOW() WHERE id = $2",
+                [referralCode, universityId]
+            );
+        }
+
+        const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+        const registrationURL = `${FRONTEND_URL}/register?referralCode=${referralCode}`;
+
+        const qrCodeDataURL = await QRCode.toDataURL(registrationURL, {
+            errorCorrectionLevel: 'H',
+            type: 'image/png',
+            width: 300,
+            margin: 2,
+        });
+
+        res.json({
+            qrCode: qrCodeDataURL,
+            referralCode,
+            registrationURL,
+            universityName,
+        });
+    } catch (err) {
+        console.error("GENERATE UNIVERSITY QR CODE ERROR:", err.message);
+        res.status(500).json({ message: "Failed to generate QR code" });
+    }
+};
+
+// DEGREE CRUD
+exports.addDegree = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { degree_name } = req.body;
+
+        if (!degree_name) {
+            return res.status(400).json({ message: "Degree name is required" });
         }
 
         const universityRes = await pool.query(
@@ -291,19 +325,18 @@ exports.addDepartment = async (req, res) => {
         const universityId = universityRes.rows[0].id;
 
         const result = await pool.query(
-            "INSERT INTO university_departments (university_id, department_name, hod_name) VALUES ($1, $2, $3) RETURNING *",
-            [universityId, department_name, hod_name || null]
+            "INSERT INTO university_degrees (university_id, degree_name) VALUES ($1, $2) RETURNING *",
+            [universityId, degree_name]
         );
 
-        res.json({ department: result.rows[0] });
+        res.json({ degree: result.rows[0] });
     } catch (err) {
-        console.error("ADD DEPARTMENT ERROR:", err.message);
+        console.error("ADD DEGREE ERROR:", err.message);
         res.status(500).json({ message: "Server error" });
     }
 };
 
-// Delete department
-exports.deleteDepartment = async (req, res) => {
+exports.deleteDegree = async (req, res) => {
     try {
         const userId = req.userId;
         const { id } = req.params;
@@ -320,162 +353,18 @@ exports.deleteDepartment = async (req, res) => {
         const universityId = universityRes.rows[0].id;
 
         await pool.query(
-            "DELETE FROM university_departments WHERE id = $1 AND university_id = $2",
+            "DELETE FROM university_degrees WHERE id = $1 AND university_id = $2",
             [id, universityId]
         );
 
-        res.json({ message: "Department deleted" });
+        res.json({ message: "Degree deleted" });
     } catch (err) {
-        console.error("DELETE DEPARTMENT ERROR:", err.message);
+        console.error("DELETE DEGREE ERROR:", err.message);
         res.status(500).json({ message: "Server error" });
     }
 };
 
-// Add program
-exports.addProgram = async (req, res) => {
-    try {
-        const userId = req.userId;
-        const {
-            program_level,
-            program_name,
-            department,
-            duration_years,
-            annual_fees,
-            total_seats,
-            eligibility,
-        } = req.body;
-
-        if (!program_name) {
-            return res.status(400).json({ message: "Program name is required" });
-        }
-
-        const universityRes = await pool.query(
-            "SELECT id FROM universities WHERE user_id = $1",
-            [userId]
-        );
-
-        if (!universityRes.rows.length) {
-            return res.status(404).json({ message: "University not found" });
-        }
-
-        const universityId = universityRes.rows[0].id;
-
-        const result = await pool.query(
-            "INSERT INTO university_programs (university_id, program_level, program_name, department, duration_years, annual_fees, total_seats, eligibility) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
-            [
-                universityId,
-                program_level || null,
-                program_name,
-                department || null,
-                duration_years || null,
-                annual_fees || null,
-                total_seats || null,
-                eligibility || null,
-            ]
-        );
-
-        res.json({ program: result.rows[0] });
-    } catch (err) {
-        console.error("ADD PROGRAM ERROR:", err.message);
-        res.status(500).json({ message: "Server error" });
-    }
-};
-
-// Delete program
-exports.deleteProgram = async (req, res) => {
-    try {
-        const userId = req.userId;
-        const { id } = req.params;
-
-        const universityRes = await pool.query(
-            "SELECT id FROM universities WHERE user_id = $1",
-            [userId]
-        );
-
-        if (!universityRes.rows.length) {
-            return res.status(404).json({ message: "University not found" });
-        }
-
-        const universityId = universityRes.rows[0].id;
-
-        await pool.query(
-            "DELETE FROM university_programs WHERE id = $1 AND university_id = $2",
-            [id, universityId]
-        );
-
-        res.json({ message: "Program deleted" });
-    } catch (err) {
-        console.error("DELETE PROGRAM ERROR:", err.message);
-        res.status(500).json({ message: "Server error" });
-    }
-};
-
-// Add facility
-exports.addFacility = async (req, res) => {
-    try {
-        const userId = req.userId;
-        const { facility_name } = req.body;
-
-        if (!facility_name) {
-            return res.status(400).json({ message: "Facility name is required" });
-        }
-
-        const universityRes = await pool.query(
-            "SELECT id FROM universities WHERE user_id = $1",
-            [userId]
-        );
-
-        if (!universityRes.rows.length) {
-            return res.status(404).json({ message: "University not found" });
-        }
-
-        const universityId = universityRes.rows[0].id;
-
-        const result = await pool.query(
-            "INSERT INTO university_facilities (university_id, facility_name) VALUES ($1, $2) RETURNING *",
-            [universityId, facility_name]
-        );
-
-        res.json({ facility: result.rows[0] });
-    } catch (err) {
-        if (err.code === "23505") {
-            return res.status(400).json({ message: "Facility already exists" });
-        }
-        console.error("ADD FACILITY ERROR:", err.message);
-        res.status(500).json({ message: "Server error" });
-    }
-};
-
-// Delete facility
-exports.deleteFacility = async (req, res) => {
-    try {
-        const userId = req.userId;
-        const { id } = req.params;
-
-        const universityRes = await pool.query(
-            "SELECT id FROM universities WHERE user_id = $1",
-            [userId]
-        );
-
-        if (!universityRes.rows.length) {
-            return res.status(404).json({ message: "University not found" });
-        }
-
-        const universityId = universityRes.rows[0].id;
-
-        await pool.query(
-            "DELETE FROM university_facilities WHERE id = $1 AND university_id = $2",
-            [id, universityId]
-        );
-
-        res.json({ message: "Facility deleted" });
-    } catch (err) {
-        console.error("DELETE FACILITY ERROR:", err.message);
-        res.status(500).json({ message: "Server error" });
-    }
-};
-
-// Add placement
+// PLACEMENT CRUD
 exports.addPlacement = async (req, res) => {
     try {
         const userId = req.userId;
@@ -487,10 +376,6 @@ exports.addPlacement = async (req, res) => {
             companies_visited,
             top_recruiters,
         } = req.body;
-
-        if (!academic_year) {
-            return res.status(400).json({ message: "Academic year is required" });
-        }
 
         const universityRes = await pool.query(
             "SELECT id FROM universities WHERE user_id = $1",
@@ -523,7 +408,6 @@ exports.addPlacement = async (req, res) => {
     }
 };
 
-// Delete placement
 exports.deletePlacement = async (req, res) => {
     try {
         const userId = req.userId;
@@ -552,7 +436,7 @@ exports.deletePlacement = async (req, res) => {
     }
 };
 
-// Add ranking
+// RANKING CRUD
 exports.addRanking = async (req, res) => {
     try {
         const userId = req.userId;
@@ -585,7 +469,6 @@ exports.addRanking = async (req, res) => {
     }
 };
 
-// Delete ranking
 exports.deleteRanking = async (req, res) => {
     try {
         const userId = req.userId;
@@ -610,68 +493,6 @@ exports.deleteRanking = async (req, res) => {
         res.json({ message: "Ranking deleted" });
     } catch (err) {
         console.error("DELETE RANKING ERROR:", err.message);
-        res.status(500).json({ message: "Server error" });
-    }
-};
-
-// Add research
-exports.addResearch = async (req, res) => {
-    try {
-        const userId = req.userId;
-        const { research_title, area, publication_year, description } = req.body;
-
-        if (!research_title) {
-            return res.status(400).json({ message: "Research title is required" });
-        }
-
-        const universityRes = await pool.query(
-            "SELECT id FROM universities WHERE user_id = $1",
-            [userId]
-        );
-
-        if (!universityRes.rows.length) {
-            return res.status(404).json({ message: "University not found" });
-        }
-
-        const universityId = universityRes.rows[0].id;
-
-        const result = await pool.query(
-            "INSERT INTO university_research (university_id, research_title, area, publication_year, description) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-            [universityId, research_title, area || null, publication_year || null, description || null]
-        );
-
-        res.json({ research: result.rows[0] });
-    } catch (err) {
-        console.error("ADD RESEARCH ERROR:", err.message);
-        res.status(500).json({ message: "Server error" });
-    }
-};
-
-// Delete research
-exports.deleteResearch = async (req, res) => {
-    try {
-        const userId = req.userId;
-        const { id } = req.params;
-
-        const universityRes = await pool.query(
-            "SELECT id FROM universities WHERE user_id = $1",
-            [userId]
-        );
-
-        if (!universityRes.rows.length) {
-            return res.status(404).json({ message: "University not found" });
-        }
-
-        const universityId = universityRes.rows[0].id;
-
-        await pool.query(
-            "DELETE FROM university_research WHERE id = $1 AND university_id = $2",
-            [id, universityId]
-        );
-
-        res.json({ message: "Research deleted" });
-    } catch (err) {
-        console.error("DELETE RESEARCH ERROR:", err.message);
         res.status(500).json({ message: "Server error" });
     }
 };

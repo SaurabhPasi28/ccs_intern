@@ -74,7 +74,7 @@ export default function UniversityProfile() {
 
     const fetchUniversityProfile = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/university`, {
+            const res = await fetch(`${API_URL}/university`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const data = await res.json();
@@ -99,7 +99,7 @@ export default function UniversityProfile() {
 
     const updateUniversity = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/university`, {
+            const res = await fetch(`${API_URL}/university`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -124,7 +124,7 @@ export default function UniversityProfile() {
         try {
             const formData = new FormData();
             formData.append(type === 'profile' ? 'logoImage' : 'bannerImage', file);
-            const res = await fetch(`${API_URL}/api/university/media`, {
+            const res = await fetch(`${API_URL}/university/media`, {
                 method: "PATCH",
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
@@ -150,7 +150,7 @@ export default function UniversityProfile() {
     const addDepartment = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/api/university/departments`, {
+            const res = await fetch(`${API_URL}/university/departments`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify(departmentForm),
@@ -168,7 +168,7 @@ export default function UniversityProfile() {
 
     const deleteDepartment = async (id) => {
         try {
-            const res = await fetch(`${API_URL}/api/university/departments/${id}`, {
+            const res = await fetch(`${API_URL}/university/departments/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -185,7 +185,7 @@ export default function UniversityProfile() {
     const addProgram = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/api/university/programs`, {
+            const res = await fetch(`${API_URL}/university/programs`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify(programForm),
@@ -206,7 +206,7 @@ export default function UniversityProfile() {
 
     const deleteProgram = async (id) => {
         try {
-            const res = await fetch(`${API_URL}/api/university/programs/${id}`, {
+            const res = await fetch(`${API_URL}/university/programs/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -223,7 +223,7 @@ export default function UniversityProfile() {
     const addFacility = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/api/university/facilities`, {
+            const res = await fetch(`${API_URL}/university/facilities`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify(facilityForm),
@@ -244,7 +244,7 @@ export default function UniversityProfile() {
 
     const deleteFacility = async (id) => {
         try {
-            const res = await fetch(`${API_URL}/api/university/facilities/${id}`, {
+            const res = await fetch(`${API_URL}/university/facilities/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -261,7 +261,7 @@ export default function UniversityProfile() {
     const addPlacement = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/api/university/placements`, {
+            const res = await fetch(`${API_URL}/university/placements`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify(placementForm),
@@ -282,7 +282,7 @@ export default function UniversityProfile() {
 
     const deletePlacement = async (id) => {
         try {
-            const res = await fetch(`${API_URL}/api/university/placements/${id}`, {
+            const res = await fetch(`${API_URL}/university/placements/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -299,7 +299,7 @@ export default function UniversityProfile() {
     const addRanking = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/api/university/rankings`, {
+            const res = await fetch(`${API_URL}/university/rankings`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify(rankingForm),
@@ -317,7 +317,7 @@ export default function UniversityProfile() {
 
     const deleteRanking = async (id) => {
         try {
-            const res = await fetch(`${API_URL}/api/university/rankings/${id}`, {
+            const res = await fetch(`${API_URL}/university/rankings/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -334,7 +334,7 @@ export default function UniversityProfile() {
     const addResearch = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/api/university/research`, {
+            const res = await fetch(`${API_URL}/university/research`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify(researchForm),
@@ -352,7 +352,7 @@ export default function UniversityProfile() {
 
     const deleteResearch = async (id) => {
         try {
-            const res = await fetch(`${API_URL}/api/university/research/${id}`, {
+            const res = await fetch(`${API_URL}/university/research/${id}`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${token}` },
             });

@@ -97,7 +97,7 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
+      await axios.post(`${API_URL}/auth/forgot-password`, { email });
       toast.success("Reset link sent to your email 📩");
       setEmail("");
     } catch (err) {

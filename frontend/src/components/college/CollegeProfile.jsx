@@ -167,7 +167,7 @@ export default function CollegeProfile() {
 
     const fetchCollege = async () => {
         try {
-            const { ok, data } = await apiCall(`${API_URL}/api/college`, "GET");
+            const { ok, data } = await apiCall(`${API_URL}/college`, "GET");
             if (ok) {
                 const c = data.college || {};
                 setCollege({
@@ -204,7 +204,7 @@ export default function CollegeProfile() {
     const fetchQRCode = async () => {
         setQrLoading(true);
         try {
-            const { ok, data } = await apiCall(`${API_URL}/api/college/qrcode`, "GET");
+            const { ok, data } = await apiCall(`${API_URL}/college/qrcode`, "GET");
             if (ok) {
                 setQrCode(data);
             }
@@ -239,7 +239,7 @@ export default function CollegeProfile() {
         if (savingCollege) return;
         
         setSavingCollege(true);
-        const { ok } = await apiCall(`${API_URL}/api/college`, "PUT", college);
+        const { ok } = await apiCall(`${API_URL}/college`, "PUT", college);
         if (ok) {
             toast.success("College profile updated successfully!");
             setEditingCollege(false);
@@ -258,7 +258,7 @@ export default function CollegeProfile() {
         try {
             const formData = new FormData();
             formData.append(type === 'profile' ? 'logoImage' : 'bannerImage', file);
-            const res = await fetch(`${API_URL}/api/college/media`, {
+            const res = await fetch(`${API_URL}/college/media`, {
                 method: "PATCH",
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData,
@@ -283,7 +283,7 @@ export default function CollegeProfile() {
     };
 
     const clearImages = async () => {
-        const { ok } = await apiCall(`${API_URL}/api/college/media/clear`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/college/media/clear`, "DELETE");
         if (ok) {
             toast.success("Images cleared");
             setCollege((prev) => ({ ...prev, logo_url: "", banner_url: "" }));
@@ -306,7 +306,7 @@ export default function CollegeProfile() {
         if (addingDegree) return;
         
         setAddingDegree(true);
-        const { ok } = await apiCall(`${API_URL}/api/college/degrees`, "POST", degreeForm);
+        const { ok } = await apiCall(`${API_URL}/college/degrees`, "POST", degreeForm);
         if (ok) {
             toast.success("Degree added");
             setShowDegreeForm(false);
@@ -323,7 +323,7 @@ export default function CollegeProfile() {
         if (deletingItem) return;
         
         setDeletingItem(degree_id);
-        const { ok } = await apiCall(`${API_URL}/api/college/degrees/${degree_id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/college/degrees/${degree_id}`, "DELETE");
         if (ok) { 
             toast.success("Deleted"); 
             fetchCollege(); 
@@ -336,7 +336,7 @@ export default function CollegeProfile() {
         if (addingPlacement) return;
         
         setAddingPlacement(true);
-        const { ok } = await apiCall(`${API_URL}/api/college/placements`, "POST", placementForm);
+        const { ok } = await apiCall(`${API_URL}/college/placements`, "POST", placementForm);
         if (ok) {
             toast.success("Placement added");
             setShowPlacementForm(false);
@@ -359,7 +359,7 @@ export default function CollegeProfile() {
         if (deletingItem) return;
         
         setDeletingItem(id);
-        const { ok } = await apiCall(`${API_URL}/api/college/placements/${id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/college/placements/${id}`, "DELETE");
         if (ok) { 
             toast.success("Deleted"); 
             fetchCollege(); 
@@ -372,7 +372,7 @@ export default function CollegeProfile() {
         if (addingRanking) return;
         
         setAddingRanking(true);
-        const { ok } = await apiCall(`${API_URL}/api/college/rankings`, "POST", rankingForm);
+        const { ok } = await apiCall(`${API_URL}/college/rankings`, "POST", rankingForm);
         if (ok) {
             toast.success("Ranking added");
             setShowRankingForm(false);
@@ -394,7 +394,7 @@ export default function CollegeProfile() {
         if (deletingItem) return;
         
         setDeletingItem(id);
-        const { ok } = await apiCall(`${API_URL}/api/college/rankings/${id}`, "DELETE");
+        const { ok } = await apiCall(`${API_URL}/college/rankings/${id}`, "DELETE");
         if (ok) { 
             toast.success("Deleted"); 
             fetchCollege(); 
