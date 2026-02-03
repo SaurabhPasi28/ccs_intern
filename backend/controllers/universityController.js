@@ -56,6 +56,7 @@ exports.getUniversity = async (req, res) => {
             : [];
 
         res.json({
+            id: userId,
             university: universityResult.rows[0] || null,
             degrees,
             placements,
@@ -493,6 +494,56 @@ exports.deleteRanking = async (req, res) => {
         res.json({ message: "Ranking deleted" });
     } catch (err) {
         console.error("DELETE RANKING ERROR:", err.message);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+/* =============================
+   GET PUBLIC UNIVERSITY PROFILE (NO AUTH)
+============================= */
+exports.getPublicProfile = async (req, res) => {
+    try {
+        const { id } = req.params; // user_id (UUID)
+
+        // Get university basic info
+        const universityResult = await pool.query(
+            "SELECT * FROM universities WHERE user_id = $1",
+            [id]
+        );
+
+        if (!universityResult.rows.length) {
+            return res.status(404).json({ message: "University not found" });
+        }
+
+        const university = universityResult.rows[0];
+        const universityId = university.id;
+
+        // Get degrees
+        const degrees = await pool.query(
+            "SELECT * FROM university_degrees WHERE university_id = $1 ORDER BY degree_name",
+            [universityId]
+        );
+
+        // Get placements
+        const placements = await pool.query(
+            "SELECT * FROM university_placements WHERE university_id = $1 ORDER BY academic_year DESC",
+            [universityId]
+        );
+
+        // Get rankings
+        const rankings = await pool.query(
+            "SELECT * FROM university_rankings WHERE university_id = $1 ORDER BY year DESC NULLS LAST",
+            [universityId]
+        );
+
+        res.json({
+            university: university,
+            degrees: degrees.rows,
+            placements: placements.rows,
+            rankings: rankings.rows,
+        });
+    } catch (err) {
+        console.error("GET PUBLIC PROFILE ERROR:", err.message);
         res.status(500).json({ message: "Server error" });
     }
 };

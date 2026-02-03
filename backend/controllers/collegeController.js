@@ -57,6 +57,7 @@ exports.getCollege = async (req, res) => {
             : [];
 
         res.json({
+            id: userId,
             college: collegeResult.rows[0] || null,
             degrees,
             placements,
@@ -64,6 +65,56 @@ exports.getCollege = async (req, res) => {
         });
     } catch (err) {
         console.error("GET COLLEGE ERROR:", err.message);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+/* =============================
+   GET PUBLIC PROFILE (NO AUTH)
+============================= */
+exports.getPublicProfile = async (req, res) => {
+    try {
+        const { id } = req.params; // user_id (UUID)
+
+        // Get college basic info
+        const collegeResult = await pool.query(
+            "SELECT * FROM colleges WHERE user_id = $1",
+            [id]
+        );
+
+        if (!collegeResult.rows.length) {
+            return res.status(404).json({ message: "College not found" });
+        }
+
+        const college = collegeResult.rows[0];
+        const collegeId = college.id;
+
+        // Get degrees
+        const degrees = await pool.query(
+            "SELECT * FROM degrees WHERE college_id = $1 ORDER BY id DESC",
+            [collegeId]
+        );
+
+        // Get placements
+        const placements = await pool.query(
+            "SELECT * FROM college_placements WHERE college_id = $1 ORDER BY academic_year DESC",
+            [collegeId]
+        );
+
+        // Get rankings
+        const rankings = await pool.query(
+            "SELECT * FROM college_rankings WHERE college_id = $1 ORDER BY year DESC NULLS LAST",
+            [collegeId]
+        );
+
+        res.json({
+            college: college,
+            degrees: degrees.rows,
+            placements: placements.rows,
+            rankings: rankings.rows,
+        });
+    } catch (err) {
+        console.error("GET PUBLIC PROFILE ERROR:", err.message);
         res.status(500).json({ message: "Server error" });
     }
 };

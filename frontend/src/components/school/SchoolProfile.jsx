@@ -87,6 +87,7 @@ export default function SchoolProfile() {
     const token = localStorage.getItem("token");
     const [loading, setLoading] = useState(true);
     const [displayName, setDisplayName] = useState("Your School");
+    const [userId, setUserId] = useState(null);
     const [showEditMenu, setShowEditMenu] = useState(false);
 
     // Loading states
@@ -145,6 +146,7 @@ export default function SchoolProfile() {
                     setOriginalSchool(data.school);
                     setDisplayName(data.school.name || "Your School");
                 }
+                setUserId(data.id);
                 setFacilities(data.facilities || []);
                 setPrograms(data.programs || []);
                 setAchievements(data.achievements || []);
@@ -224,9 +226,33 @@ export default function SchoolProfile() {
         }
     };
 
-    const clearImages = async () => {
-        toast.info("Clear images functionality needs to be implemented");
-        setShowEditMenu(false);
+    const clearImages = async (type) => {
+        try {
+            const query = type ? `?type=${encodeURIComponent(type)}` : "";
+            const res = await fetch(`${API_URL}/school/media/clear${query}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                toast.success(type ? `${type} removed` : "Images cleared");
+                setSchool((prev) => ({
+                    ...prev,
+                    logo_url: type === "banner" ? prev.logo_url : "",
+                    banner_url: type === "logo" ? prev.banner_url : "",
+                }));
+                if (data.school) {
+                    setSchool(data.school);
+                    setOriginalSchool(data.school);
+                }
+                setShowEditMenu(false);
+            } else {
+                toast.error(data.message || "Failed to clear images");
+            }
+        } catch (err) {
+            toast.error("Failed to clear images");
+        }
     };
 
     const addFacility = async (e) => {
@@ -1088,6 +1114,25 @@ export default function SchoolProfile() {
                                 </div>
                             </SectionCard>
                         )}
+
+                        {/* Public Profile URL Card */}
+                        <SectionCard title="Public profile & URL">
+                            {userId ? (
+                                <div className="space-y-2">
+                                    <p className="text-sm text-gray-600 break-all">
+                                        {window.location.origin}/school/{userId}
+                                    </p>
+                                    <button
+                                        onClick={() => window.open(`/school/${userId}`, '_blank')}
+                                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                    >
+                                        View Public Profile →
+                                    </button>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-600">Loading...</p>
+                            )}
+                        </SectionCard>
                     </div>
                 </div>
             </div>

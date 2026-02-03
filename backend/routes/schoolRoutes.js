@@ -6,6 +6,9 @@ const schoolController = require("../controllers/schoolController");
 // Get school profile
 router.get("/", authMiddleware, schoolController.getSchool);
 
+// Get public school profile (no auth)
+router.get("/public/:id", schoolController.getPublicProfile);
+
 // Update school basic info
 router.put("/", authMiddleware, schoolController.updateSchool);
 
@@ -15,6 +18,9 @@ router.patch(
     authMiddleware,
     ...schoolController.uploadSchoolMedia
 );
+
+// Clear school media (logo/banner)
+router.delete("/media/clear", authMiddleware, schoolController.clearSchoolMedia);
 
 // Facility routes
 router.post("/facilities", authMiddleware, schoolController.addFacility);

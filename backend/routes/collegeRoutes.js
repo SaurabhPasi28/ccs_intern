@@ -3,6 +3,14 @@ const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const collegeController = require("../controllers/collegeController");
 
+/* =============================
+   PUBLIC ENDPOINTS (NO AUTH)
+============================= */
+router.get("/public/:id", collegeController.getPublicProfile);
+
+/* =============================
+   PROTECTED ENDPOINTS (WITH AUTH)
+============================= */
 router.get("/", authMiddleware, collegeController.getCollege);
 router.put("/", authMiddleware, collegeController.updateCollege);
 

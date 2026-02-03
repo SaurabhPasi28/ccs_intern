@@ -12,16 +12,12 @@ const {
     getCompanyPosts,
     getCompanyPostById,
     deleteCompanyPost,
-    // addTech,
-    // addRole,
     getPublicCompany,
 } = require("../controllers/companyController");
 
 router.get("/", authMiddleware, getCompany);
-// router.get("/public/:id", getPublicCompany); // Public endpoint - no auth {Added by me}
+router.get("/public/:id", getPublicCompany); // Public endpoint - no auth
 router.put("/", authMiddleware, saveCompany);
-// router.post("/tech", authMiddleware, addTech);
-// router.post("/roles", authMiddleware, addRole);
 
 // SOCIAL LINKS
 router.post("/social-links", authMiddleware, saveCompanySocialLinks);
@@ -46,7 +42,5 @@ router.post("/publish", authMiddleware, saveCompanyPost);
 router.get("/publish", authMiddleware, getCompanyPosts);
 router.get("/publish/:postId", authMiddleware, getCompanyPostById);
 router.delete("/publish/:postId", authMiddleware, deleteCompanyPost);
-
-module.exports = router;
 
 module.exports = router;

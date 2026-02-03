@@ -49,6 +49,7 @@ exports.getProfile = async (req, res) => {
         );
 
         res.json({
+            id: userId,
             full_name: userResult.rows[0]?.full_name || null,
             email: userResult.rows[0]?.email || null,
             profile: profileResult.rows[0] || null,

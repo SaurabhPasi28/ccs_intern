@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Card, CardContent } from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { 
     GraduationCap, 
     MapPin, 
+    Calendar, 
     Globe, 
     Mail, 
     Phone,
@@ -12,38 +13,41 @@ import {
     Award,
     TrendingUp,
     DollarSign,
-    Users
+    Users,
+    Building2
 } from "lucide-react";
 
-export default function CollegePublicProfile() {
+const API_URL = import.meta.env.VITE_API_URL;
+
+export default function UniversityPublicProfile() {
     const { id } = useParams();
     const [loading, setLoading] = useState(true);
-    const [college, setCollege] = useState(null);
+    const [university, setUniversity] = useState(null);
     const [degrees, setDegrees] = useState([]);
     const [placements, setPlacements] = useState([]);
     const [rankings, setRankings] = useState([]);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        fetchCollegeProfile();
+        fetchUniversityProfile();
     }, [id]);
 
-    const fetchCollegeProfile = async () => {
+    const fetchUniversityProfile = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`http://localhost:5000/api/college/public/${id}`);
+            const response = await fetch(`${API_URL}/university/public/${id}`);
             const data = await response.json();
 
             if (response.ok) {
-                setCollege(data.college);
+                setUniversity(data.university);
                 setDegrees(data.degrees || []);
                 setPlacements(data.placements || []);
                 setRankings(data.rankings || []);
             } else {
-                setError(data.message || "College not found");
+                setError(data.message || "University not found");
             }
         } catch (err) {
-            setError("Failed to load college profile");
+            setError("Failed to load university profile");
             console.error(err);
         } finally {
             setLoading(false);
@@ -53,17 +57,20 @@ export default function CollegePublicProfile() {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <div className="text-xl">Loading college profile...</div>
+                <div className="text-center">
+                    <GraduationCap className="w-16 h-16 text-blue-600 animate-pulse mx-auto mb-4" />
+                    <div className="text-xl font-semibold text-gray-700">Loading university profile...</div>
+                </div>
             </div>
         );
     }
 
-    if (error || !college) {
+    if (error || !university) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <Card className="max-w-md">
+                <Card className="max-w-md shadow-2xl border-2 border-red-200">
                     <CardContent className="pt-6">
-                        <p className="text-center text-red-500">{error || "College not found"}</p>
+                        <p className="text-center text-red-600 font-semibold">{error || "University not found"}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -74,11 +81,11 @@ export default function CollegePublicProfile() {
         <div className="min-h-screen bg-gradient-to-b from-gray-50 via-gray-50 to-gray-100">
             {/* Banner Section */}
             <div className="relative">
-                {college?.banner_image_url ? (
+                {university?.banner_url ? (
                     <div className="w-full h-72 bg-black">
                         <img
-                            src={college.banner_image_url}
-                            alt={college.name}
+                            src={`${API_URL}${university.banner_url}`}
+                            alt={university.name}
                             className="w-full h-full object-cover"
                         />
                     </div>
@@ -87,10 +94,10 @@ export default function CollegePublicProfile() {
                 )}
 
                 <div className="absolute -bottom-16 left-10 transform hover:scale-105 transition-transform duration-300 ease-in-out">
-                    {college?.logo_image_url ? (
+                    {university?.logo_url ? (
                         <img
-                            src={college.logo_image_url}
-                            alt={college.name}
+                            src={`${API_URL}${university.logo_url}`}
+                            alt={university.name}
                             className="w-48 h-48 rounded-full border-4 border-white shadow-lg bg-white object-cover"
                         />
                     ) : (
@@ -103,44 +110,44 @@ export default function CollegePublicProfile() {
 
             {/* Main Content */}
             <div className="max-w-6xl mx-auto px-4 pt-20 pb-8">
-                {/* College Header */}
+                {/* University Header */}
                 <div className="mb-8">
-                    <h1 className="text-5xl font-extrabold text-gray-900 mb-3 tracking-tight">{college.name}</h1>
+                    <h1 className="text-5xl font-extrabold text-gray-900 mb-3 tracking-tight">{university.name}</h1>
                     
                     <div className="flex flex-wrap gap-4 text-gray-700 mb-6">
-                        {college?.city && college?.state && (
+                        {university?.city && university?.state && (
                             <div className="flex items-center gap-2 font-medium">
                                 <MapPin size={20} className="text-blue-600" />
-                                <span className="text-base">{college.city}, {college.state}</span>
+                                <span className="text-base">{university.city}, {university.state}</span>
                             </div>
                         )}
-                        {college?.established_year && (
+                        {university?.established_year && (
                             <div className="flex items-center gap-2 font-medium">
-                                <GraduationCap size={20} className="text-blue-600" />
-                                <span className="text-base">Est. {college.established_year}</span>
+                                <Calendar size={20} className="text-blue-600" />
+                                <span className="text-base">Est. {university.established_year}</span>
                             </div>
                         )}
                     </div>
 
-                    {/* College Info Badges */}
+                    {/* University Info Badges */}
                     <div className="flex flex-wrap gap-2 mb-6">
-                        {college?.college_type && (
+                        {university?.university_type && (
                             <Badge variant="secondary" className="px-3 py-1 text-sm">
-                                {college.college_type}
+                                {university.university_type}
                             </Badge>
                         )}
-                        {college?.accreditation && (
+                        {university?.accreditation && (
                             <Badge className="bg-green-100 text-green-800 border-green-300 px-3 py-1 text-sm">
-                                {college.accreditation}
+                                {university.accreditation}
                             </Badge>
                         )}
                     </div>
 
                     {/* Contact Info */}
                     <div className="flex flex-wrap gap-4 text-sm">
-                        {college?.website_url && (
+                        {university?.website_url && (
                             <a
-                                href={college.website_url}
+                                href={university.website_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
@@ -149,22 +156,22 @@ export default function CollegePublicProfile() {
                                 <span>Website</span>
                             </a>
                         )}
-                        {college?.email && (
+                        {university?.email && (
                             <a
-                                href={`mailto:${college.email}`}
+                                href={`mailto:${university.email}`}
                                 className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
                             >
                                 <Mail size={16} />
-                                <span>{college.email}</span>
+                                <span>{university.email}</span>
                             </a>
                         )}
-                        {college?.phone && (
+                        {university?.phone && (
                             <a
-                                href={`tel:${college.phone}`}
+                                href={`tel:${university.phone}`}
                                 className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
                             >
                                 <Phone size={16} />
-                                <span>{college.phone}</span>
+                                <span>{university.phone}</span>
                             </a>
                         )}
                     </div>
@@ -173,26 +180,24 @@ export default function CollegePublicProfile() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Left Column - Main Content */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Academic Programs Section */}
+                        {/* Academic Degrees Section */}
                         {degrees.length > 0 && (
-                            <Card className="border border-gray-200 shadow-md">
-                                <div className="p-6 border-b border-gray-200">
-                                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                            <Card className="border-2 border-blue-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                                         <BookOpen size={24} className="text-blue-600" />
-                                            Degrees Offered ({degrees.length})
-                                    </h2>
-                                </div>
-                                <CardContent className="pt-6">
-                                    <div className="space-y-4">
+                                        Degree Programs ({degrees.length})
+                                    </CardTitle>
+                                    <div className="h-1 w-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mt-2"></div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
                                         {degrees.map((degree, index) => (
-                                            <div key={index} className="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <div>
-                                                        <h3 className="font-bold text-lg text-gray-900">
-                                                            {degree.degree_name || 'Degree Program'}
-                                                        </h3>
-                                                    </div>
-                                                </div>
+                                            <div 
+                                                key={index} 
+                                                className="border-l-4 border-blue-500 pl-4 py-2 hover:bg-blue-50 transition-colors"
+                                            >
+                                                <p className="font-semibold text-gray-900">{degree.degree_name}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -202,17 +207,18 @@ export default function CollegePublicProfile() {
 
                         {/* Placements Section */}
                         {placements.length > 0 && (
-                            <Card className="border border-gray-200 shadow-md">
-                                <div className="p-6 border-b border-gray-200">
-                                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                            <Card className="border-2 border-blue-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                                         <TrendingUp size={24} className="text-green-600" />
                                         Placement Statistics
-                                    </h2>
-                                </div>
-                                <CardContent className="pt-6">
+                                    </CardTitle>
+                                    <div className="h-1 w-20 bg-gradient-to-r from-green-500 to-blue-600 rounded-full mt-2"></div>
+                                </CardHeader>
+                                <CardContent>
                                     <div className="space-y-4">
                                         {placements.map((placement, index) => (
-                                            <div key={index} className="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                            <div key={index} className="border-2 border-gray-100 rounded-lg p-5 hover:shadow-lg hover:border-green-200 transition-all duration-200 bg-gradient-to-r from-white to-gray-50">
                                                 <h3 className="font-bold text-lg text-gray-900 mb-3">{placement.academic_year}</h3>
                                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                                     {placement.placement_percent && (
@@ -256,20 +262,26 @@ export default function CollegePublicProfile() {
                     <div className="space-y-6">
                         {/* Rankings Card */}
                         {rankings.length > 0 && (
-                            <Card className="border border-gray-200 shadow-md">
-                                <div className="p-6 border-b border-gray-200">
-                                    <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                                        <Award size={20} className="text-yellow-600" />
+                            <Card className="border-2 border-blue-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                        <Award size={24} className="text-yellow-600" />
                                         Rankings
-                                    </h3>
-                                </div>
-                                <CardContent className="pt-6">
-                                    <div className="space-y-3">
+                                    </CardTitle>
+                                    <div className="h-1 w-16 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-full mt-2"></div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-4">
                                         {rankings.map((ranking, index) => (
-                                            <div key={index} className="pb-3 border-b border-gray-100 last:border-b-0">
-                                                <p className="text-sm font-medium text-gray-600">{ranking.ranking_body}</p>
-                                                <p className="text-xl font-bold text-blue-600">Rank #{ranking.rank_value}</p>
-                                                <p className="text-xs text-gray-500">{ranking.category} • {ranking.year}</p>
+                                            <div key={index} className="border-l-4 border-yellow-500 pl-3 py-2">
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{ranking.ranking_body}</p>
+                                                <p className="font-bold text-xl text-gray-900">#{ranking.rank_value}</p>
+                                                {ranking.category && (
+                                                    <p className="text-sm text-gray-600">{ranking.category}</p>
+                                                )}
+                                                {ranking.year && (
+                                                    <p className="text-xs text-gray-500 mt-1">{ranking.year}</p>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -277,20 +289,39 @@ export default function CollegePublicProfile() {
                             </Card>
                         )}
 
-                        {/* Address Card */}
-                        <Card className="border border-gray-200 shadow-md">
-                            <div className="p-6 border-b border-gray-200">
-                                <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                                    <MapPin size={20} className="text-red-600" />
-                                    Address
-                                </h3>
-                            </div>
-                            <CardContent className="pt-6">
-                                {college?.address && <p className="text-sm text-gray-700 mb-2">{college.address}</p>}
-                                {college?.city && (
-                                    <p className="text-sm text-gray-600">
-                                        {college.city}{college.state ? `, ${college.state}` : ''}{college.zipcode ? ` - ${college.zipcode}` : ''}
-                                    </p>
+                        {/* University Info Card */}
+                        <Card className="border-2 border-blue-100 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 bg-white">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                    <Building2 size={24} className="text-blue-600" />
+                                    University Info
+                                </CardTitle>
+                                <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mt-2"></div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {university.total_students && (
+                                    <div className="border-l-4 border-blue-500 pl-3 py-1">
+                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Students</p>
+                                        <p className="font-semibold text-base text-gray-900">{university.total_students}</p>
+                                    </div>
+                                )}
+                                {university.total_faculty && (
+                                    <div className="border-l-4 border-purple-500 pl-3 py-1">
+                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Faculty</p>
+                                        <p className="font-semibold text-base text-gray-900">{university.total_faculty}</p>
+                                    </div>
+                                )}
+                                {university.campus_area && (
+                                    <div className="border-l-4 border-green-500 pl-3 py-1">
+                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Campus Area</p>
+                                        <p className="font-semibold text-base text-gray-900">{university.campus_area}</p>
+                                    </div>
+                                )}
+                                {university.address && (
+                                    <div className="border-l-4 border-gray-400 pl-3 py-1">
+                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Address</p>
+                                        <p className="text-sm text-gray-700 leading-relaxed">{university.address}</p>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>

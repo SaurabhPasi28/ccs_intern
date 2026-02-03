@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { 
-    School, 
-    MapPin, 
-    Calendar, 
-    Globe, 
-    Mail, 
+import {
+    School,
+    MapPin,
+    Calendar,
+    Globe,
+    Mail,
     Phone,
     BookOpen,
     Award,
@@ -18,12 +18,21 @@ import {
     CheckCircle,
     Star,
     Target,
-    Sparkles
+    Sparkles,
+    User
 } from "lucide-react";
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+const resolveMediaUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    return `${API_URL}${url}`;
+};
 
 export default function SchoolPublicProfile() {
     const { id } = useParams();
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [school, setSchool] = useState(null);
     const [programs, setPrograms] = useState([]);
     const [facilities, setFacilities] = useState([]);
@@ -57,141 +66,37 @@ export default function SchoolPublicProfile() {
     //         setLoading(false);
     //     }
     // };
-    const data={
-  "college": {
-    "id": 101,
-    "name": "Skyline Public School",
-    "college_type": "CBSE Co-Education School",
-    "accreditation": "CBSE Board Affiliated",
-    "established_year": 2003,
-    "city": "Bengaluru",
-    "state": "Karnataka",
-    "address": "42, Knowledge Park Road, Whitefield, Bengaluru, Karnataka",
-    "zipcode": "560066",
-    "banner_url": "/uploads/schools/skyline/banner.jpg",
-    "logo_url": "/uploads/schools/skyline/logo.png",
-    "website_url": "https://www.skylinepublicschool.edu.in",
-    "email": "admissions@skylinepublicschool.edu.in",
-    "phone": "+91-98765-43210"
-  },
-  "programs": [
-    {
-      "program_name": "Primary Education",
-      "degree_level": "Primary",
-      "specialization": "Foundational Literacy & Numeracy",
-      "duration_years": 5,
-      "total_seats": 240,
-      "annual_fees": "65000"
-    },
-    {
-      "program_name": "Middle School",
-      "degree_level": "Middle",
-      "specialization": "STEM + Language Arts",
-      "duration_years": 3,
-      "total_seats": 180,
-      "annual_fees": "78000"
-    },
-    {
-      "program_name": "Secondary School",
-      "degree_level": "Secondary",
-      "specialization": "CBSE Curriculum (Class 9–10)",
-      "duration_years": 2,
-      "total_seats": 160,
-      "annual_fees": "95000"
-    },
-    {
-      "program_name": "Senior Secondary",
-      "degree_level": "Higher Secondary",
-      "specialization": "Science / Commerce / Humanities",
-      "duration_years": 2,
-      "total_seats": 200,
-      "annual_fees": "125000"
-    }
-  ],
-  "facilities": [
-    {
-      "facility_name": "Smart Classrooms"
-    },
-    {
-      "facility_name": "Computer Lab"
-    },
-    {
-      "facility_name": "Physics, Chemistry & Biology Labs"
-    },
-    {
-      "facility_name": "Library & Digital Resource Center"
-    },
-    {
-      "facility_name": "Sports Ground & Indoor Games Arena"
-    },
-    {
-      "facility_name": "School Auditorium"
-    },
-    {
-      "facility_name": "Cafeteria & Hygienic Dining Area"
-    },
-    {
-      "facility_name": "School Bus Transport"
-    }
-  ],
-  "placements": [
-    {
-      "academic_year": "2023-2024",
-      "placement_percent": 98,
-      "average_package": 86,
-      "highest_package": 99,
-      "companies_visited": 42,
-      "top_recruiters": "Top performers achieved 95%+ in CBSE boards; 38 students secured state-level ranks; 14 students selected for National Science Olympiad finals."
-    },
-    {
-      "academic_year": "2022-2023",
-      "placement_percent": 96,
-      "average_package": 84,
-      "highest_package": 97,
-      "companies_visited": 36,
-      "top_recruiters": "12 students scored 98%+ overall; 6 students won inter-school debate championships; 20+ medals in district athletics."
-    }
-  ],
-  "rankings": [
-    {
-      "ranking_body": "Education World India School Rankings",
-      "rank_value": 7,
-      "year": "2024",
-      "category": "Top CBSE Schools in Bengaluru"
-    },
-    {
-      "ranking_body": "Times School Survey",
-      "rank_value": 12,
-      "year": "2023",
-      "category": "Best Academic Excellence Award"
-    },
-    {
-      "ranking_body": "National Olympiad Excellence Awards",
-      "rank_value": 3,
-      "year": "2024",
-      "category": "Top Olympiad Performing School"
-    },
-    {
-      "ranking_body": "State Education Excellence Recognition",
-      "rank_value": 5,
-      "year": "2022",
-      "category": "Best Infrastructure & Facilities"
-    }
-  ]
-}
+        useEffect(() => {
+                const fetchSchoolProfile = async () => {
+                        try {
+                                setLoading(true);
+                                const response = await fetch(`${API_URL}/school/public/${id}`);
+                                const data = await response.json();
 
-    useEffect(()=>{
+                                if (response.ok) {
+                                        setSchool(data.school || null);
+                                        setPrograms(data.programs || []);
+                                        setFacilities(data.facilities || []);
+                                        setPlacements(data.placements || []);
+                                        setRankings(data.rankings || []);
+                                        setError(null);
+                                } else {
+                                        setError(data.message || "School not found");
+                                }
+                        } catch (err) {
+                                setError("Failed to load school profile");
+                                console.error(err);
+                        } finally {
+                                setLoading(false);
+                        }
+                };
 
-        setSchool(data.college);
-        setPrograms(data.programs || []);
-        setFacilities(data.facilities || []);
-        setPlacements(data.placements || []);
-        setRankings(data.rankings || []);
-    },[])
+                fetchSchoolProfile();
+        }, [id]);
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100">
+            <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-sky-50 via-blue-50 to-indigo-100">
                 <div className="text-center">
                     <School className="w-16 h-16 text-blue-600 animate-pulse mx-auto mb-4" />
                     <div className="text-xl font-semibold text-gray-700">Loading school profile...</div>
@@ -202,7 +107,7 @@ export default function SchoolPublicProfile() {
 
     if (error || !school) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100">
+            <div className="flex items-center justify-center min-h-screen bg-linear-to-br from-sky-50 via-blue-50 to-indigo-100">
                 <Card className="max-w-md shadow-2xl border-2 border-red-200">
                     <CardContent className="pt-6">
                         <p className="text-center text-red-600 font-semibold">{error || "School not found"}</p>
@@ -213,19 +118,17 @@ export default function SchoolPublicProfile() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100">
+        <div className="min-h-screen bg-linear-to-br from-sky-50 via-blue-50 to-indigo-100">
             {/* Banner Section with Overlay Pattern */}
             <div className="relative overflow-hidden">
                 {school.banner_url ? (
                     <div className="relative w-full h-80">
                         <img
-                            // src={`http://localhost:5000${school.banner_url}`}
-                            src="https://www.shutterstock.com/image-vector/outline-bangalore-skyline-blue-buildings-260nw-508722250.jpg"
-
+                            src={resolveMediaUrl(school.banner_url)}
                             alt={school.name}
                             className="w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent"></div>
                     </div>
                 ) : (
                     <div className="relative w-full h-80 bg-blue-600 ">
@@ -241,16 +144,14 @@ export default function SchoolPublicProfile() {
                     {school.logo_url ? (
                         <div className="relative ">
                             <img
-                                // src={`http://localhost:5000${school.logo_url}`}
-                                src={`http://localhost:5000${school.logo_url}`}
-
+                                src={resolveMediaUrl(school.logo_url)}
                                 alt={school.name}
                                 className="w-52 h-52 rounded-full border-4 border-white shadow-2xl bg-white object-cover"
                             />
-                            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur opacity-25 group-hover:opacity-40 transition"></div>
+                            <div className="absolute -inset-1 bg-linear-to-r from-blue-600 to-indigo-600 rounded-full blur opacity-25 group-hover:opacity-40 transition"></div>
                         </div>
                     ) : (
-                        <div className="relative w-52 h-52 rounded-3xl border-4 border-white shadow-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                        <div className="relative w-52 h-52 rounded-3xl border-4 border-white shadow-2xl bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                             <School size={80} className="text-white" />
                         </div>
                     )}
@@ -272,16 +173,22 @@ export default function SchoolPublicProfile() {
                                 {school.name}
                             </h1>
                             <div className="flex flex-wrap gap-3 mb-6">
-                                {school.college_type && (
-                                    <Badge className="px-4 py-2 text-base font-bold bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 border-0 shadow-lg">
+                                {school.school_type && (
+                                    <Badge className="px-4 py-2 text-base font-bold bg-linear-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 border-0 shadow-lg">
                                         <School className="w-4 h-4 mr-2" />
-                                        {school.college_type}
+                                        {school.school_type}
                                     </Badge>
                                 )}
-                                {school.accreditation && (
-                                    <Badge className="px-4 py-2 text-base font-bold bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-0 shadow-lg">
+                                {school.board && (
+                                    <Badge className="px-4 py-2 text-base font-bold bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 border-0 shadow-lg">
                                         <Award className="w-4 h-4 mr-2" />
-                                        {school.accreditation}
+                                        {school.board}
+                                    </Badge>
+                                )}
+                                {school.affiliation && (
+                                    <Badge className="px-4 py-2 text-base font-bold bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 border-0 shadow-lg">
+                                        <Award className="w-4 h-4 mr-2" />
+                                        {school.affiliation}
                                     </Badge>
                                 )}
                                 {school.established_year && (
@@ -322,7 +229,7 @@ export default function SchoolPublicProfile() {
                         {/* Academic Programs/Classes */}
                         {programs.length > 0 && (
                             <Card className="border-0 shadow-2xl hover:shadow-3xl transition-all duration-500 bg-white rounded-2xl overflow-hidden">
-                                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
+                                <div className="bg-linear-to-r from-blue-600 to-indigo-600 p-6">
                                     <CardTitle className="text-3xl font-black text-white flex items-center gap-3">
                                         <div className="bg-white/20 p-3 rounded-xl backdrop-blur">
                                             <BookOpen size={28} />
@@ -335,10 +242,10 @@ export default function SchoolPublicProfile() {
                                         {programs.map((program, index) => (
                                             <div
                                                 key={index}
-                                                className="group relative bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 border-2 border-blue-100 hover:border-blue-300 hover:-translate-y-1"
+                                                className="group relative bg-linear-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 border-2 border-blue-100 hover:border-blue-300 hover:-translate-y-1"
                                             >
                                                 <div className="absolute top-4 right-4">
-                                                    <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                                                    <div className="bg-linear-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
                                                         {program.degree_level || "Program"}
                                                     </div>
                                                 </div>
@@ -380,7 +287,7 @@ export default function SchoolPublicProfile() {
                         {/* Achievements & Results */}
                         {placements.length > 0 && (
                             <Card className="border-0 shadow-2xl hover:shadow-3xl transition-all duration-500 bg-white rounded-2xl overflow-hidden">
-                                <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6">
+                                <div className="bg-linear-to-r from-green-600 to-emerald-600 p-6">
                                     <CardTitle className="text-3xl font-black text-white flex items-center gap-3">
                                         <div className="bg-white/20 p-3 rounded-xl backdrop-blur">
                                             <Trophy size={28} />
@@ -393,10 +300,10 @@ export default function SchoolPublicProfile() {
                                         {placements.map((placement, index) => (
                                             <div
                                                 key={index}
-                                                className="relative bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border-2 border-green-100 hover:border-green-300 hover:shadow-xl transition-all duration-300"
+                                                className="relative bg-linear-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border-2 border-green-100 hover:border-green-300 hover:shadow-xl transition-all duration-300"
                                             >
                                                 <div className="flex items-center gap-3 mb-5">
-                                                    <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white text-lg font-black px-4 py-2 rounded-xl shadow-lg">
+                                                    <div className="bg-linear-to-r from-green-500 to-emerald-600 text-white text-lg font-black px-4 py-2 rounded-xl shadow-lg">
                                                         {placement.academic_year}
                                                     </div>
                                                     <Star className="w-6 h-6 text-yellow-500 fill-yellow-500 animate-pulse" />
@@ -452,7 +359,7 @@ export default function SchoolPublicProfile() {
                         {/* Rankings & Awards */}
                         {rankings.length > 0 && (
                             <Card className="border-0 shadow-2xl hover:shadow-3xl transition-all duration-500 bg-white rounded-2xl overflow-hidden">
-                                <div className="bg-gradient-to-r from-yellow-500 to-orange-600 p-6">
+                                <div className="bg-linear-to-r from-yellow-500 to-orange-600 p-6">
                                     <CardTitle className="text-3xl font-black text-white flex items-center gap-3">
                                         <div className="bg-white/20 p-3 rounded-xl backdrop-blur">
                                             <Award size={28} />
@@ -465,10 +372,10 @@ export default function SchoolPublicProfile() {
                                         {rankings.map((ranking, index) => (
                                             <div
                                                 key={index}
-                                                className="group relative bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 border-2 border-yellow-200 hover:border-yellow-400"
+                                                className="group relative bg-linear-to-br from-yellow-50 to-orange-50 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 border-2 border-yellow-200 hover:border-yellow-400"
                                             >
                                                 <div className="flex items-start gap-4">
-                                                    <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-3 rounded-xl shadow-lg">
+                                                    <div className="bg-linear-to-br from-yellow-400 to-orange-500 p-3 rounded-xl shadow-lg">
                                                         <Award size={24} className="text-white" />
                                                     </div>
                                                     <div className="flex-1">
@@ -476,7 +383,7 @@ export default function SchoolPublicProfile() {
                                                             {ranking.ranking_body}
                                                         </h4>
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <Badge className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white font-bold text-sm px-3 py-1">
+                                                            <Badge className="bg-linear-to-r from-yellow-500 to-orange-600 text-white font-bold text-sm px-3 py-1">
                                                                 #{ranking.rank_value}
                                                             </Badge>
                                                             {ranking.year && (
@@ -501,83 +408,87 @@ export default function SchoolPublicProfile() {
                     {/* Right Column - Info Cards */}
                     <div className="space-y-6">
                         {/* Contact Card */}
-                        <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-white to-blue-50 rounded-2xl overflow-hidden">
-                            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-5">
-                                <CardTitle className="flex font-bold text-xl items-center gap-2 text-white">
-                                    <Mail size={24} />
-                                    Contact Us
-                                </CardTitle>
-                            </div>
-                            <CardContent className="p-5 space-y-3">
-                                {school.email && (
-                                    <a
-                                        href={`mailto:${school.email}`}
-                                        className="flex items-center gap-3 p-4 bg-white rounded-xl hover:bg-blue-50 transition-all duration-200 border-2 border-blue-100 hover:border-blue-300 hover:shadow-lg group"
-                                    >
-                                        <div className="bg-blue-100 p-2 rounded-lg group-hover:bg-blue-200 transition-colors">
-                                            <Mail size={20} className="text-blue-600" />
-                                        </div>
-                                        <span className="text-sm text-gray-700 font-semibold flex-1 break-all">{school.email}</span>
-                                    </a>
-                                )}
-                                {school.phone && (
-                                    <a
-                                        href={`tel:${school.phone}`}
-                                        className="flex items-center gap-3 p-4 bg-white rounded-xl hover:bg-green-50 transition-all duration-200 border-2 border-green-100 hover:border-green-300 hover:shadow-lg group"
-                                    >
-                                        <div className="bg-green-100 p-2 rounded-lg group-hover:bg-green-200 transition-colors">
-                                            <Phone size={20} className="text-green-600" />
-                                        </div>
-                                        <span className="text-sm text-gray-700 font-semibold">{school.phone}</span>
-                                    </a>
-                                )}
-                                {school.website_url && (
-                                    <a
-                                        href={school.website_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-3 p-4 bg-white rounded-xl hover:bg-purple-50 transition-all duration-200 border-2 border-purple-100 hover:border-purple-300 hover:shadow-lg group"
-                                    >
-                                        <div className="bg-purple-100 p-2 rounded-lg group-hover:bg-purple-200 transition-colors">
-                                            <Globe size={20} className="text-purple-600" />
-                                        </div>
-                                        <span className="text-sm text-gray-700 font-semibold">Visit Website</span>
-                                    </a>
-                                )}
-                            </CardContent>
-                        </Card>
+                        {(school.email || school.phone || school.website_url) && (
+                            <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 bg-linear-to-br from-white to-blue-50 rounded-2xl overflow-hidden">
+                                <div className="bg-linear-to-r from-blue-600 to-indigo-600 p-5">
+                                    <CardTitle className="flex font-bold text-xl items-center gap-2 text-white">
+                                        <Mail size={24} />
+                                        Contact Us
+                                    </CardTitle>
+                                </div>
+                                <CardContent className="p-5 space-y-3">
+                                    {school.email && (
+                                        <a
+                                            href={`mailto:${school.email}`}
+                                            className="flex items-center gap-3 p-4 bg-white rounded-xl hover:bg-blue-50 transition-all duration-200 border-2 border-blue-100 hover:border-blue-300 hover:shadow-lg group"
+                                        >
+                                            <div className="bg-blue-100 p-2 rounded-lg group-hover:bg-blue-200 transition-colors">
+                                                <Mail size={20} className="text-blue-600" />
+                                            </div>
+                                            <span className="text-sm text-gray-700 font-semibold flex-1 break-all">{school.email}</span>
+                                        </a>
+                                    )}
+                                    {school.phone && (
+                                        <a
+                                            href={`tel:${school.phone}`}
+                                            className="flex items-center gap-3 p-4 bg-white rounded-xl hover:bg-green-50 transition-all duration-200 border-2 border-green-100 hover:border-green-300 hover:shadow-lg group"
+                                        >
+                                            <div className="bg-green-100 p-2 rounded-lg group-hover:bg-green-200 transition-colors">
+                                                <Phone size={20} className="text-green-600" />
+                                            </div>
+                                            <span className="text-sm text-gray-700 font-semibold">{school.phone}</span>
+                                        </a>
+                                    )}
+                                    {school.website_url && (
+                                        <a
+                                            href={school.website_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-3 p-4 bg-white rounded-xl hover:bg-purple-50 transition-all duration-200 border-2 border-purple-100 hover:border-purple-300 hover:shadow-lg group"
+                                        >
+                                            <div className="bg-purple-100 p-2 rounded-lg group-hover:bg-purple-200 transition-colors">
+                                                <Globe size={20} className="text-purple-600" />
+                                            </div>
+                                            <span className="text-sm text-gray-700 font-semibold">Visit Website</span>
+                                        </a>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Location Card */}
-                        <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-white to-indigo-50 rounded-2xl overflow-hidden">
-                            <div className="bg-indigo-600 p-5">
-                                <CardTitle className="flex font-bold text-xl items-center gap-2 text-white">
-                                    <MapPin size={24} />
-                                    Location
-                                </CardTitle>
-                            </div>
-                            <CardContent className="p-5 space-y-3">
-                                {school.address && (
-                                    <p className="text-sm text-gray-700 leading-relaxed font-medium bg-white p-3 rounded-lg border-2 border-gray-100">
-                                        {school.address}
-                                    </p>
-                                )}
-                                {(school.city || school.state) && (
-                                    <p className="text-base text-gray-800 font-bold bg-indigo-100 p-3 rounded-lg">
-                                        {[school.city, school.state].filter(Boolean).join(", ")}
-                                    </p>
-                                )}
-                                {school.zipcode && (
-                                    <p className="text-sm text-gray-700 font-semibold bg-white p-3 rounded-lg border-2 border-gray-100">
-                                        PIN: {school.zipcode}
-                                    </p>
-                                )}
-                            </CardContent>
-                        </Card>
+                        {(school.address || school.city || school.state || school.zipcode) && (
+                            <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 bg-linear-to-br from-white to-indigo-50 rounded-2xl overflow-hidden">
+                                <div className="bg-indigo-600 p-5">
+                                    <CardTitle className="flex font-bold text-xl items-center gap-2 text-white">
+                                        <MapPin size={24} />
+                                        Location
+                                    </CardTitle>
+                                </div>
+                                <CardContent className="p-5 space-y-3">
+                                    {school.address && (
+                                        <p className="text-sm text-gray-700 leading-relaxed font-medium bg-white p-3 rounded-lg border-2 border-gray-100">
+                                            {school.address}
+                                        </p>
+                                    )}
+                                    {(school.city || school.state) && (
+                                        <p className="text-base text-gray-800 font-bold bg-indigo-100 p-3 rounded-lg">
+                                            {[school.city, school.state].filter(Boolean).join(", ")}
+                                        </p>
+                                    )}
+                                    {school.zipcode && (
+                                        <p className="text-sm text-gray-700 font-semibold bg-white p-3 rounded-lg border-2 border-gray-100">
+                                            PIN: {school.zipcode}
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Facilities Card */}
                         {facilities.length > 0 && (
-                            <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-white to-green-50 rounded-2xl overflow-hidden">
-                                <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-5">
+                            <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 bg-linear-to-br from-white to-green-50 rounded-2xl overflow-hidden">
+                                <div className="bg-linear-to-r from-green-600 to-emerald-600 p-5">
                                     <CardTitle className="flex items-center gap-2 font-bold text-xl text-white">
                                         <Building2 size={24} />
                                         Facilities
@@ -598,44 +509,103 @@ export default function SchoolPublicProfile() {
                             </Card>
                         )}
 
+                        {/* Principal */}
+                        {(school.principal_name || school.principal_email || school.principal_phone) && (
+                            <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 bg-linear-to-br from-white to-emerald-50 rounded-2xl overflow-hidden">
+                                <div className="bg-emerald-600 p-5">
+                                    <CardTitle className="flex font-bold text-xl items-center gap-2 text-white">
+                                        <User size={22} />
+                                        Principal
+                                    </CardTitle>
+                                </div>
+                                <CardContent className="p-5 space-y-3">
+                                    {school.principal_name && (
+                                        <p className="text-sm font-semibold text-gray-800 bg-white p-3 rounded-lg border-2 border-emerald-100">
+                                            {school.principal_name}
+                                        </p>
+                                    )}
+                                    {school.principal_email && (
+                                        <a
+                                            href={`mailto:${school.principal_email}`}
+                                            className="text-sm text-emerald-700 font-semibold bg-white p-3 rounded-lg border-2 border-emerald-100 block"
+                                        >
+                                            {school.principal_email}
+                                        </a>
+                                    )}
+                                    {school.principal_phone && (
+                                        <a
+                                            href={`tel:${school.principal_phone}`}
+                                            className="text-sm text-emerald-700 font-semibold bg-white p-3 rounded-lg border-2 border-emerald-100 block"
+                                        >
+                                            {school.principal_phone}
+                                        </a>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+
                         {/* Quick Facts */}
-                        <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-br from-white to-purple-50 rounded-2xl overflow-hidden">
-                            <div className="bg-purple-600 p-5">
-                                <CardTitle className="font-bold text-xl text-white">Quick Facts</CardTitle>
-                            </div>
-                            <CardContent className="p-5 space-y-4">
-                                {school.college_type && (
-                                    <div className="bg-white rounded-xl p-4 border-l-4 border-blue-500 shadow-md hover:shadow-lg transition-shadow">
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">School Type</p>
-                                        <p className="font-black text-lg text-gray-900">{school.college_type}</p>
-                                    </div>
-                                )}
-                                {school.accreditation && (
-                                    <div className="bg-white rounded-xl p-4 border-l-4 border-green-500 shadow-md hover:shadow-lg transition-shadow">
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Board/Affiliation</p>
-                                        <p className="font-black text-lg text-gray-900">{school.accreditation}</p>
-                                    </div>
-                                )}
-                                {school.established_year && (
-                                    <div className="bg-white rounded-xl p-4 border-l-4 border-purple-500 shadow-md hover:shadow-lg transition-shadow">
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Established</p>
-                                        <p className="font-black text-lg text-gray-900">{school.established_year}</p>
-                                    </div>
-                                )}
-                                {programs.length > 0 && (
-                                    <div className="bg-white rounded-xl p-4 border-l-4 border-orange-500 shadow-md hover:shadow-lg transition-shadow">
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Programs Offered</p>
-                                        <p className="font-black text-lg text-gray-900">{programs.length}</p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                        {(school.school_type || school.board || school.affiliation || school.grade_levels || school.established_year || school.student_strength || school.teacher_count || programs.length > 0) && (
+                            <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-300 bg-linear-to-br from-white to-purple-50 rounded-2xl overflow-hidden">
+                                <div className="bg-purple-600 p-5">
+                                    <CardTitle className="font-bold text-xl text-white">Quick Facts</CardTitle>
+                                </div>
+                                <CardContent className="p-5 space-y-4">
+                                    {school.school_type && (
+                                        <div className="bg-white rounded-xl p-4 border-l-4 border-blue-500 shadow-md hover:shadow-lg transition-shadow">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">School Type</p>
+                                            <p className="font-black text-lg text-gray-900">{school.school_type}</p>
+                                        </div>
+                                    )}
+                                    {school.board && (
+                                        <div className="bg-white rounded-xl p-4 border-l-4 border-green-500 shadow-md hover:shadow-lg transition-shadow">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Board</p>
+                                            <p className="font-black text-lg text-gray-900">{school.board}</p>
+                                        </div>
+                                    )}
+                                    {school.affiliation && (
+                                        <div className="bg-white rounded-xl p-4 border-l-4 border-emerald-500 shadow-md hover:shadow-lg transition-shadow">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Affiliation</p>
+                                            <p className="font-black text-lg text-gray-900">{school.affiliation}</p>
+                                        </div>
+                                    )}
+                                    {school.grade_levels && (
+                                        <div className="bg-white rounded-xl p-4 border-l-4 border-indigo-500 shadow-md hover:shadow-lg transition-shadow">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Grade Levels</p>
+                                            <p className="font-black text-lg text-gray-900">{school.grade_levels}</p>
+                                        </div>
+                                    )}
+                                    {school.established_year && (
+                                        <div className="bg-white rounded-xl p-4 border-l-4 border-purple-500 shadow-md hover:shadow-lg transition-shadow">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Established</p>
+                                            <p className="font-black text-lg text-gray-900">{school.established_year}</p>
+                                        </div>
+                                    )}
+                                    {school.student_strength && (
+                                        <div className="bg-white rounded-xl p-4 border-l-4 border-orange-500 shadow-md hover:shadow-lg transition-shadow">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Students</p>
+                                            <p className="font-black text-lg text-gray-900">{school.student_strength}</p>
+                                        </div>
+                                    )}
+                                    {school.teacher_count && (
+                                        <div className="bg-white rounded-xl p-4 border-l-4 border-pink-500 shadow-md hover:shadow-lg transition-shadow">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Teachers</p>
+                                            <p className="font-black text-lg text-gray-900">{school.teacher_count}</p>
+                                        </div>
+                                    )}
+                                    {programs.length > 0 && (
+                                        <div className="bg-white rounded-xl p-4 border-l-4 border-orange-500 shadow-md hover:shadow-lg transition-shadow">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Programs Offered</p>
+                                            <p className="font-black text-lg text-gray-900">{programs.length}</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Footer Decoration */}
-            <div className="h-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600"></div>
         </div>
     );
 }

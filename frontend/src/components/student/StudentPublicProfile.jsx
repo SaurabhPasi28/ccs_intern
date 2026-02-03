@@ -35,7 +35,7 @@ export default function StudentPublicProfile() {
     const fetchStudentProfile = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`http://localhost:5000/api/profile/public/${id}`);
+            const response = await fetch(`http://localhost:5000/api/student/public/${id}`);
             const data = await response.json();
 
             if (response.ok) {
@@ -89,9 +89,9 @@ export default function StudentPublicProfile() {
                 {profile?.banner_image_url ? (
                     <div className="w-full h-72 bg-black">
                         <img
-                            src={`http://localhost:5000${profile.banner_image_url}`}
+                            src={profile.banner_image_url}
                             alt={user.name}
-                            className="w-full h-full"
+                            className="w-full h-full object-cover"
                         />
                     </div>
                 ) : (
@@ -101,7 +101,7 @@ export default function StudentPublicProfile() {
                 <div className="absolute -bottom-16 left-10 transform hover:scale-105 transition-transform duration-300 ease-in-out">
                     {profile?.profile_image_url ? (
                         <img
-                            src={`http://localhost:5000${profile.profile_image_url}`}
+                            src={profile.profile_image_url}
                             alt={user.name}
                             className="w-48 h-48 rounded-full border-4 border-white shadow-lg bg-white object-cover"
                         />

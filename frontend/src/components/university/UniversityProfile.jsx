@@ -82,6 +82,7 @@ export default function UniversityProfile() {
     const token = localStorage.getItem("token");
     const [loading, setLoading] = useState(true);
     const [displayName, setDisplayName] = useState("Your University");
+    const [userId, setUserId] = useState(null);
     const [showEditMenu, setShowEditMenu] = useState(false);
 
     // Loading states
@@ -167,6 +168,7 @@ export default function UniversityProfile() {
                     setOriginalUniversity(data.university);
                     setDisplayName(data.university.name || "Your University");
                 }
+                setUserId(data.id);
                 setDegrees(data.degrees || []);
                 setPlacements(data.placements || []);
                 setRankings(data.rankings || []);
@@ -1087,6 +1089,25 @@ export default function UniversityProfile() {
                                 </div>
                             </SectionCard>
                         )}
+
+                        {/* Public Profile URL Card */}
+                        <SectionCard title="Public profile & URL">
+                            {userId ? (
+                                <div className="space-y-2">
+                                    <p className="text-sm text-gray-600 break-all">
+                                        {window.location.origin}/university/{userId}
+                                    </p>
+                                    <button
+                                        onClick={() => window.open(`/university/${userId}`, '_blank')}
+                                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                    >
+                                        View Public Profile →
+                                    </button>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-600">Loading...</p>
+                            )}
+                        </SectionCard>
                     </div>
                 </div>
             </div>

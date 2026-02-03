@@ -57,6 +57,7 @@ exports.getSchool = async (req, res) => {
             : [];
 
         res.json({
+            id: userId,
             school: schoolResult.rows[0] || null,
             facilities,
             programs,
@@ -247,6 +248,83 @@ exports.uploadSchoolMedia = [
         }
     },
 ];
+
+// Clear school media (logo/banner)
+exports.clearSchoolMedia = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { type } = req.query || {};
+
+        const schoolRes = await pool.query(
+            "SELECT id, logo_url, banner_url FROM schools WHERE user_id = $1",
+            [userId]
+        );
+
+        if (!schoolRes.rows.length) {
+            return res.status(404).json({ message: "School profile not found" });
+        }
+
+        const school = schoolRes.rows[0];
+        const currentLogo = school.logo_url;
+        const currentBanner = school.banner_url;
+
+        let query;
+        let params;
+
+        if (type === "logo") {
+            query = `
+                UPDATE schools
+                SET logo_url = NULL,
+                    updated_at = NOW()
+                WHERE id = $1
+                RETURNING *
+            `;
+            params = [school.id];
+        } else if (type === "banner") {
+            query = `
+                UPDATE schools
+                SET banner_url = NULL,
+                    updated_at = NOW()
+                WHERE id = $1
+                RETURNING *
+            `;
+            params = [school.id];
+        } else {
+            query = `
+                UPDATE schools
+                SET logo_url = NULL,
+                    banner_url = NULL,
+                    updated_at = NOW()
+                WHERE id = $1
+                RETURNING *
+            `;
+            params = [school.id];
+        }
+
+        const result = await pool.query(query, params);
+
+        const deleteCloudinary = async (url) => {
+            const publicId = extractPublicId(url);
+            if (publicId) {
+                await deleteFromCloudinary(publicId);
+            }
+        };
+
+        if (type === "logo") {
+            await deleteCloudinary(currentLogo);
+        } else if (type === "banner") {
+            await deleteCloudinary(currentBanner);
+        } else {
+            await deleteCloudinary(currentLogo);
+            await deleteCloudinary(currentBanner);
+        }
+
+        res.json({ school: result.rows[0] });
+    } catch (err) {
+        console.error("CLEAR SCHOOL MEDIA ERROR:", err.message);
+        res.status(500).json({ message: "Failed to clear images" });
+    }
+};
 
 // Add facility
 exports.addFacility = async (req, res) => {
@@ -508,6 +586,63 @@ exports.deleteResult = async (req, res) => {
         res.json({ message: "Result deleted" });
     } catch (err) {
         console.error("DELETE RESULT ERROR:", err.message);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+/* =============================
+   GET PUBLIC SCHOOL PROFILE (NO AUTH)
+============================= */
+exports.getPublicProfile = async (req, res) => {
+    try {
+        const { id } = req.params; // user_id (UUID)
+
+        // Get school basic info
+        const schoolResult = await pool.query(
+            "SELECT * FROM schools WHERE user_id = $1",
+            [id]
+        );
+
+        if (!schoolResult.rows.length) {
+            return res.status(404).json({ message: "School not found" });
+        }
+
+        const school = schoolResult.rows[0];
+        const schoolId = school.id;
+
+        // Get programs
+        const programs = await pool.query(
+            "SELECT * FROM school_programs WHERE school_id = $1 ORDER BY program_name",
+            [schoolId]
+        );
+
+        // Get facilities
+        const facilities = await pool.query(
+            "SELECT * FROM school_facilities WHERE school_id = $1 ORDER BY facility_name",
+            [schoolId]
+        );
+
+        // Get achievements/results
+        const placements = await pool.query(
+            "SELECT * FROM school_results WHERE school_id = $1 ORDER BY academic_year DESC",
+            [schoolId]
+        );
+
+        // Get rankings
+        const rankings = await pool.query(
+            "SELECT * FROM school_achievements WHERE school_id = $1 ORDER BY year DESC NULLS LAST",
+            [schoolId]
+        );
+
+        res.json({
+            school: school,
+            programs: programs.rows,
+            facilities: facilities.rows,
+            placements: placements.rows,
+            rankings: rankings.rows,
+        });
+    } catch (err) {
+        console.error("GET PUBLIC PROFILE ERROR:", err.message);
         res.status(500).json({ message: "Server error" });
     }
 };

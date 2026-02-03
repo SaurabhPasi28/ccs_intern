@@ -176,7 +176,7 @@ exports.getCompany = async (req, res) => {
         );
 
         if (!companyRes.rows.length) {
-            return res.json({ company: null });
+            return res.json({ id: userId, company: null, social_links: null });
         }
 
         const company = companyRes.rows[0];
@@ -187,6 +187,7 @@ exports.getCompany = async (req, res) => {
         );
 
         res.json({
+            id: userId,
             company,
             social_links: socialRes.rows[0] || null,
         });
@@ -556,6 +557,41 @@ exports.deleteCompanyPost = async (req, res) => {
         res.json({ message: "Job post deleted successfully" });
     } catch (err) {
         console.error("DELETE COMPANY POST ERROR:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+/* =============================
+   GET PUBLIC COMPANY PROFILE (NO AUTH)
+============================= */
+exports.getPublicCompany = async (req, res) => {
+    try {
+        const { id } = req.params; // user_id (UUID)
+
+        // Get company basic info
+        const companyResult = await pool.query(
+            "SELECT * FROM companies WHERE user_id = $1",
+            [id]
+        );
+
+        if (!companyResult.rows.length) {
+            return res.status(404).json({ message: "Company not found" });
+        }
+
+        const company = companyResult.rows[0];
+        const companyId = company.id;
+
+        const socialRes = await pool.query(
+            "SELECT * FROM company_social_links WHERE company_id = $1",
+            [companyId]
+        );
+
+        res.json({
+            company: company,
+            social_links: socialRes.rows[0] || null,
+        });
+    } catch (err) {
+        console.error("GET PUBLIC COMPANY ERROR:", err.message);
         res.status(500).json({ message: "Server error" });
     }
 };

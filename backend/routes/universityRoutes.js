@@ -6,6 +6,9 @@ const universityController = require("../controllers/universityController");
 // Get university profile
 router.get("/", authMiddleware, universityController.getUniversity);
 
+// Get public university profile (no auth)
+router.get("/public/:id", universityController.getPublicProfile);
+
 // Update university basic info
 router.put("/", authMiddleware, universityController.updateUniversity);
 
