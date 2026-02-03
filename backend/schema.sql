@@ -625,6 +625,9 @@ CREATE TABLE job_applications (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE job_applications
+ALTER COLUMN status SET DEFAULT 'pending';
+
 CREATE INDEX idx_job_applications_student_id ON job_applications(student_id);
 CREATE INDEX idx_job_applications_job_id ON job_applications(job_id);
 

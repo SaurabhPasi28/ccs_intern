@@ -68,9 +68,9 @@ exports.uploadCompanyMedia = [
                 [logoUrl, bannerUrl, company.id]
             );
 
-            res.json({ 
+            res.json({
                 message: "Media uploaded successfully to Cloudinary",
-                company: updateRes.rows[0] 
+                company: updateRes.rows[0]
             });
         } catch (err) {
             console.error("UPLOAD COMPANY MEDIA ERROR:", err.message);
@@ -506,6 +506,100 @@ exports.getCompanyPosts = async (req, res) => {
     }
 };
 
+// ✅ NEW: Update job post (including status)
+exports.updateCompanyPost = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { postId } = req.params;
+        const { status, ...otherFields } = req.body;
+
+        // Verify the job belongs to this company
+        const verifyRes = await pool.query(
+            `
+            SELECT j.id, j.status as current_status
+            FROM company_jobs j
+            JOIN companies c ON c.id = j.company_id
+            WHERE j.id = $1 AND c.user_id = $2
+            `,
+            [postId, userId]
+        );
+
+        if (!verifyRes.rows.length) {
+            return res.status(404).json({ message: "Job post not found" });
+        }
+
+        // Validate status if provided
+        const validStatuses = ['draft', 'published', 'closed'];
+        if (status && !validStatuses.includes(status.toLowerCase())) {
+            return res.status(400).json({
+                message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+            });
+        }
+
+        // Update only the status if that's all that's provided
+        if (status && Object.keys(otherFields).length === 0) {
+            const updateRes = await pool.query(
+                `
+                UPDATE company_jobs
+                SET status = $1, updated_at = NOW()
+                WHERE id = $2
+                RETURNING *
+                `,
+                [status.toLowerCase(), postId]
+            );
+
+            return res.json({
+                message: "Job status updated successfully",
+                job: updateRes.rows[0],
+            });
+        }
+
+        // Otherwise update all provided fields
+        const updateFields = [];
+        const updateValues = [];
+        let paramCount = 1;
+
+        if (status) {
+            updateFields.push(`status = $${paramCount++}`);
+            updateValues.push(status.toLowerCase());
+        }
+
+        // Add other fields as needed
+        Object.keys(otherFields).forEach(key => {
+            if (key !== 'updated_at') {  // Skip updated_at if it's in the body
+                updateFields.push(`${key} = $${paramCount++}`);
+                updateValues.push(otherFields[key]);
+            }
+        });
+
+        // Always update the updated_at timestamp
+        updateFields.push('updated_at = NOW()');
+
+        // Add postId for WHERE clause
+        updateValues.push(postId);
+        const whereParamIndex = paramCount;
+
+        const updateRes = await pool.query(
+            `
+            UPDATE company_jobs
+            SET ${updateFields.join(', ')}
+            WHERE id = $${whereParamIndex}
+            RETURNING *
+            `,
+            updateValues
+        );
+
+        res.json({
+            message: "Job post updated successfully",
+            job: updateRes.rows[0],
+        });
+
+    } catch (err) {
+        console.error("UPDATE COMPANY POST ERROR:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 exports.getCompanyPostById = async (req, res) => {
     try {
         const userId = req.userId;
@@ -556,6 +650,277 @@ exports.deleteCompanyPost = async (req, res) => {
         res.json({ message: "Job post deleted successfully" });
     } catch (err) {
         console.error("DELETE COMPANY POST ERROR:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+exports.getJobApplicants = async (req, res) => {
+    try {
+        const { jobId } = req.params;
+
+        const result = await pool.query(
+            `
+            SELECT
+                ja.id AS application_id,
+                ja.status,
+                ja.resume_url,
+                ja.created_at AS applied_at,
+
+                u.id AS student_id,
+                u.name AS student_name,
+                u.email AS student_email
+
+            FROM job_applications ja
+            JOIN users u ON u.id = ja.student_id
+            WHERE ja.job_id = $1
+            ORDER BY ja.created_at DESC
+            `,
+            [jobId]
+        );
+
+        res.status(200).json({
+            applicants: result.rows
+        });
+    } catch (err) {
+        console.error("GET JOB APPLICANTS ERROR:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// UPDATE APPLICATION STATUS - Company accepts/rejects student application
+exports.updateApplicationStatus = async (req, res) => {
+    try {
+        const { applicationId } = req.params;
+        const { status } = req.body;
+        const companyUserId = req.userId;
+
+        // Validate status
+        const validStatuses = ['pending', 'accepted', 'rejected'];
+        if (!status || !validStatuses.includes(status.toLowerCase())) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid status. Must be one of: pending, accepted, rejected'
+            });
+        }
+
+        // Verify the application belongs to a job posted by this company
+        const verifyQuery = `
+            SELECT 
+                ja.id,
+                ja.student_id,
+                ja.job_id,
+                ja.status as current_status,
+                cj.title as job_title,
+                cj.company_id,
+                c.user_id as company_user_id,
+                u.name as student_name,
+                u.email as student_email
+            FROM job_applications ja
+            JOIN company_jobs cj ON ja.job_id = cj.id
+            JOIN companies c ON cj.company_id = c.id
+            JOIN users u ON ja.student_id = u.id
+            WHERE ja.id = $1
+        `;
+
+        const verifyResult = await pool.query(verifyQuery, [applicationId]);
+
+        if (verifyResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Application not found'
+            });
+        }
+
+        const application = verifyResult.rows[0];
+
+        // Check if the company owns this job posting
+        if (application.company_user_id !== companyUserId) {
+            return res.status(403).json({
+                success: false,
+                message: 'You do not have permission to update this application'
+            });
+        }
+
+        // Update the application status
+        const updateQuery = `
+            UPDATE job_applications
+            SET status = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2
+            RETURNING id, student_id, job_id, status, updated_at
+        `;
+
+        const updateResult = await pool.query(updateQuery, [
+            status.toLowerCase(),
+            applicationId
+        ]);
+
+        const updatedApplication = updateResult.rows[0];
+
+        res.status(200).json({
+            success: true,
+            message: `Application status updated to ${status}`,
+            data: {
+                applicationId: updatedApplication.id,
+                studentId: updatedApplication.student_id,
+                jobId: updatedApplication.job_id,
+                status: updatedApplication.status,
+                updatedAt: updatedApplication.updated_at,
+                previousStatus: application.current_status
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating application status:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update application status',
+            error: error.message
+        });
+    }
+};
+
+// GET APPLICATION STATISTICS FOR A JOB
+exports.getJobApplicationStats = async (req, res) => {
+    try {
+        const { jobId } = req.params;
+        const companyUserId = req.userId;
+
+        // Verify the job belongs to this company
+        const jobCheckQuery = `
+            SELECT cj.id, cj.company_id, c.user_id as company_user_id
+            FROM company_jobs cj
+            JOIN companies c ON cj.company_id = c.id
+            WHERE cj.id = $1
+        `;
+
+        const jobCheckResult = await pool.query(jobCheckQuery, [jobId]);
+
+        if (jobCheckResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Job not found'
+            });
+        }
+
+        if (jobCheckResult.rows[0].company_user_id !== companyUserId) {
+            return res.status(403).json({
+                success: false,
+                message: 'You do not have permission to view stats for this job'
+            });
+        }
+
+        // Get application statistics
+        const statsQuery = `
+            SELECT 
+                COUNT(*) as total_applications,
+                COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
+                COUNT(*) FILTER (WHERE status = 'accepted') as accepted_count,
+                COUNT(*) FILTER (WHERE status = 'rejected') as rejected_count
+            FROM job_applications
+            WHERE job_id = $1
+        `;
+
+        const statsResult = await pool.query(statsQuery, [jobId]);
+        const stats = statsResult.rows[0];
+
+        res.status(200).json({
+            success: true,
+            jobId: jobId,
+            stats: {
+                total: parseInt(stats.total_applications),
+                pending: parseInt(stats.pending_count),
+                accepted: parseInt(stats.accepted_count),
+                rejected: parseInt(stats.rejected_count)
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching application stats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch application statistics',
+            error: error.message
+        });
+    }
+};
+// Fetch complete profile of an applicant (student)
+exports.getApplicantProfile = async (req, res) => {
+    try {
+        const { studentId } = req.params;
+        const companyId = req.userId; // Company's user ID from auth middleware
+
+        // Optional: Verify that the company has access to this student's profile
+        // (i.e., the student has applied to one of the company's jobs)
+        const accessCheck = await pool.query(
+            `SELECT ja.id 
+             FROM job_applications ja
+             JOIN company_jobs cj ON ja.job_id = cj.id
+             WHERE ja.student_id = $1 
+             AND cj.company_id = (SELECT id FROM companies WHERE user_id = $2)
+             LIMIT 1`,
+            [studentId, companyId]
+        );
+
+        if (accessCheck.rows.length === 0) {
+            return res.status(403).json({
+                message: "You don't have permission to view this profile"
+            });
+        }
+
+        // Fetch basic user info
+        const userResult = await pool.query(
+            "SELECT name AS full_name, email FROM users WHERE id = $1",
+            [studentId]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        // Fetch profile
+        const profileResult = await pool.query(
+            "SELECT * FROM profiles WHERE user_id = $1",
+            [studentId]
+        );
+
+        // Fetch education
+        const educationResult = await pool.query(
+            "SELECT * FROM education WHERE user_id = $1 ORDER BY start_year DESC",
+            [studentId]
+        );
+
+        // Fetch experience
+        const experienceResult = await pool.query(
+            "SELECT * FROM experience WHERE user_id = $1 ORDER BY start_date DESC",
+            [studentId]
+        );
+
+        // Fetch skills
+        const skillsResult = await pool.query(
+            `SELECT s.id, s.skill_name
+             FROM skills s
+             JOIN user_skills us ON s.id = us.skill_id
+             WHERE us.user_id = $1`,
+            [studentId]
+        );
+
+        // Fetch certifications
+        const certificationsResult = await pool.query(
+            "SELECT * FROM certifications WHERE user_id = $1 ORDER BY issue_date DESC",
+            [studentId]
+        );
+
+        res.json({
+            full_name: userResult.rows[0]?.full_name || null,
+            email: userResult.rows[0]?.email || null,
+            profile: profileResult.rows[0] || null,
+            education: educationResult.rows,
+            experience: experienceResult.rows,
+            skills: skillsResult.rows,
+            certifications: certificationsResult.rows,
+        });
+    } catch (err) {
+        console.error("GET APPLICANT PROFILE ERROR:", err.message);
         res.status(500).json({ message: "Server error" });
     }
 };

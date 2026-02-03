@@ -11,17 +11,18 @@ const {
     saveCompanyPost,
     getCompanyPosts,
     getCompanyPostById,
+    updateCompanyPost,
     deleteCompanyPost,
-    // addTech,
-    // addRole,
+    getJobApplicants,
+    updateApplicationStatus,      
+    getJobApplicationStats,
+    getApplicantProfile,
     getPublicCompany,
 } = require("../controllers/companyController");
 
 router.get("/", authMiddleware, getCompany);
 // router.get("/public/:id", getPublicCompany); // Public endpoint - no auth {Added by me}
 router.put("/", authMiddleware, saveCompany);
-// router.post("/tech", authMiddleware, addTech);
-// router.post("/roles", authMiddleware, addRole);
 
 // SOCIAL LINKS
 router.post("/social-links", authMiddleware, saveCompanySocialLinks);
@@ -45,7 +46,13 @@ router.delete(
 router.post("/publish", authMiddleware, saveCompanyPost);
 router.get("/publish", authMiddleware, getCompanyPosts);
 router.get("/publish/:postId", authMiddleware, getCompanyPostById);
+router.put("/publish/:postId", authMiddleware, updateCompanyPost);
 router.delete("/publish/:postId", authMiddleware, deleteCompanyPost);
+router.get("/job/:jobId/applicants",authMiddleware,getJobApplicants);
+router.put("/applications/:applicationId/status",authMiddleware,updateApplicationStatus);
+router.get("/applicant/:studentId/profile", authMiddleware, getApplicantProfile);
+router.get("/job/:jobId/application-stats",authMiddleware,getJobApplicationStats);
+
 
 module.exports = router;
 
