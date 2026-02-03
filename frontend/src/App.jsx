@@ -85,6 +85,13 @@ import CompanyJobDetail from "./components/company/CompanyJobDetail";
 import StudentAppliedJobs from "./components/student/StudentAppliedJobs";
 import AppliedJobDetails from "./components/student/AppliedJobDetails";
 import PublicJobPage from "./components/publicJobPage";
+
+/* Skill Test Pages - CATEGORY-BASED */
+import SkillTestCategories from "./components/student/exam/SkillTestSimplified.jsx";
+import SkillTestInstructions from "./components/student/exam/SkillTestInstructions_ModuleBased";
+import SkillTest from "./components/student/exam/SkillTestModular";
+import SkillTestResult from "./components/student/exam/Skilltestresult";
+
 /* Admin Pages */
 import AdminDashboard from "./components/admin/adminDashboard";
 import UserListPage from "./components/admin/userTypePage";
@@ -284,6 +291,46 @@ function App() {
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
         <Route path="/userTypePage" element={<UserListPage />} />
         <Route path="/jobs" element={<PublicJobPage />} />
+
+        {/* Main page - Shows categories with expandable tests */}
+        <Route
+          path="/student/skill-test"
+          element={
+            <PrivateRoute>
+              <SkillTestCategories />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Individual test instructions page */}
+        <Route
+          path="/student/skill-test/:testId"
+          element={
+            <PrivateRoute>
+              <SkillTestInstructions />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Test taking page */}
+        <Route
+          path="/student/skill-test/:testId/take"
+          element={
+            <PrivateRoute>
+              <SkillTest />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Result page */}
+        <Route
+          path="/student/skill-test/result"
+          element={
+            <PrivateRoute>
+              <SkillTestResult />
+            </PrivateRoute>
+          }
+        />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
