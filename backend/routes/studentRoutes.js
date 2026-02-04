@@ -22,6 +22,8 @@ const {
    getStudentBasicInfo,
    applyJob,
    getAppliedJobs,
+   getAppliedJobDetails,
+   getAppliedJobIds,
    completeWelcome,
    checkWelcomeStatus,
 } = studentController;
@@ -87,6 +89,11 @@ router.get(
    getStudentBasicInfo
 );
 router.post("/jobs/apply", applyJob);
-router.get("/jobs/applied", getAppliedJobs);
+router.get("/student/applied-jobs", getAppliedJobs);
+router.get("/jobs/applied-ids", getAppliedJobIds);
+router.get(
+   "/student/applied-jobs/:applicationId",
+   getAppliedJobDetails
+);
 
 module.exports = router;

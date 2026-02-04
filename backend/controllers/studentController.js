@@ -1,8 +1,11 @@
 const path = require("path");
 const fs = require("fs");
 const pool = require("../db");
-const { imageUpload } = require("../middleware/upload");
+const { imageUpload, resumeUpload } = require("../middleware/upload");
 const { uploadToCloudinary, deleteFromCloudinary } = require("../utils/cloudinaryUpload");
+const uploadResumeToCloudinary = require("../utils/uploadResumeToCloudinary");
+
+
 const ensureDir = async (dirPath) => {
     await fs.promises.mkdir(dirPath, { recursive: true });
 };
@@ -49,6 +52,7 @@ exports.getProfile = async (req, res) => {
         );
 
         res.json({
+            id: userId,
             full_name: userResult.rows[0]?.full_name || null,
             email: userResult.rows[0]?.email || null,
             profile: profileResult.rows[0] || null,
@@ -390,7 +394,7 @@ exports.uploadMedia = [
                 // Delete old banner image if exists
                 if (existingProfile.rows[0]?.banner_image_url) {
                     const oldPublicId = extractPublicId(existingProfile.rows[0].banner_image_url);
-                console.log(oldPublicId,"--------------------->");
+                    console.log(oldPublicId, "--------------------->");
 
                     if (oldPublicId) await deleteFromCloudinary(oldPublicId);
                 }
@@ -658,44 +662,162 @@ exports.getStudentBasicInfo = async (req, res) => {
 };
 
 
-// POST /jobs/apply
+// // POST /jobs/apply
+// exports.applyJob = [
+//     // resumeUpload.single("resume"), // resume file key from frontend
+//     async (req, res) => {
+//         try {
+//             const studentId = req.userId; // UUID from auth middleware
+//             const { jobId, jobTitle, company } = req.body;
+
+//             if (!jobId) {
+//                 return res.status(400).json({ success: false, message: "Job ID is required" });
+//             }
+
+//             // Check if job exists
+//             const jobQuery = "SELECT * FROM company_jobs WHERE id = $1 AND status = 'published'";
+//             const { rows: jobRows } = await pool.query(jobQuery, [jobId]);
+//             if (jobRows.length === 0) {
+//                 return res.status(404).json({ success: false, message: "Job not found" });
+//             }
+
+//             // Check if student already applied
+//             const checkQuery = "SELECT * FROM job_applications WHERE student_id = $1 AND job_id = $2";
+//             const { rows: existing } = await pool.query(checkQuery, [studentId, jobId]);
+//             if (existing.length > 0) {
+//                 return res.status(400).json({ success: false, message: "Already applied to this job" });
+//             }
+
+//             // Resume file path
+//             let resumeUrl = null;
+//             if (req.file) {
+//                 resumeUrl = `/uploads/student/resumes/${req.file.filename}`;
+//             }
+
+//             const insertQuery = `
+//                 INSERT INTO job_applications
+//                     (student_id, job_id, resume_url, job_title, company)
+//                 VALUES ($1, $2, $3, $4, $5)
+//                 RETURNING *
+//             `;
+//             const { rows } = await pool.query(insertQuery, [
+//                 studentId,
+//                 jobId,
+//                 resumeUrl,
+//                 jobTitle || null,
+//                 company || null,
+//             ]);
+
+//             res.status(201).json({ success: true, data: rows[0] });
+//         } catch (err) {
+//             console.error("APPLY JOB ERROR:", err.message);
+//             res.status(500).json({ success: false, message: "Server error" });
+//         }
+//     }
+// ];
+// exports.applyJob = [
+//     resumeUpload.single("resume"),
+//     async (req, res) => {
+//         try {
+//             const studentId = req.userId;
+//             const { jobId, jobTitle, company } = req.body;
+
+//             if (!jobId) {
+//                 return res.status(400).json({ success: false, message: "Job ID required" });
+//             }
+
+//             let resumeUrl = null;
+
+//             if (req.file) {
+//                 const result = await uploadResumeToCloudinary(req.file.buffer);
+//                 resumeUrl = result.secure_url;
+//             }
+
+//             const insert = await pool.query(
+//                 `INSERT INTO job_applications
+//          (student_id, job_id, resume_url, job_title, company)
+//          VALUES ($1, $2, $3, $4, $5)
+//          RETURNING *`,
+//                 [studentId, jobId, resumeUrl, jobTitle, company]
+//             );
+
+//             res.status(201).json({ success: true, data: insert.rows[0] });
+//         } catch (err) {
+//             console.error("APPLY JOB ERROR:", err);
+//             res.status(500).json({ success: false, message: "Server error" });
+//         }
+//     },
+// ];
+
 exports.applyJob = [
-    // resumeUpload.single("resume"), // resume file key from frontend
+    resumeUpload.single("resume"), // ✅ multer FIRST
+
     async (req, res) => {
         try {
-            const studentId = req.userId; // UUID from auth middleware
+            const studentId = req.userId;
             const { jobId, jobTitle, company } = req.body;
 
             if (!jobId) {
-                return res.status(400).json({ success: false, message: "Job ID is required" });
+                return res.status(400).json({
+                    success: false,
+                    message: "Job ID is required",
+                });
             }
 
-            // Check if job exists
-            const jobQuery = "SELECT * FROM company_jobs WHERE id = $1 AND status = 'published'";
+            // ✅ CHECK JOB EXISTS
+            const jobQuery =
+                "SELECT * FROM company_jobs WHERE id = $1 AND status = 'published'";
             const { rows: jobRows } = await pool.query(jobQuery, [jobId]);
+
             if (jobRows.length === 0) {
-                return res.status(404).json({ success: false, message: "Job not found" });
+                return res.status(404).json({
+                    success: false,
+                    message: "Job not found",
+                });
             }
 
-            // Check if student already applied
-            const checkQuery = "SELECT * FROM job_applications WHERE student_id = $1 AND job_id = $2";
-            const { rows: existing } = await pool.query(checkQuery, [studentId, jobId]);
+            // ✅ CHECK DUPLICATE APPLICATION
+            const checkQuery =
+                "SELECT 1 FROM job_applications WHERE student_id = $1 AND job_id = $2";
+            const { rows: existing } = await pool.query(checkQuery, [
+                studentId,
+                jobId,
+            ]);
+
             if (existing.length > 0) {
-                return res.status(400).json({ success: false, message: "Already applied to this job" });
+                return res.status(400).json({
+                    success: false,
+                    message: "Already applied to this job",
+                });
             }
 
-            // Resume file path
+            // ================================
+            // ⭐ THIS IS WHERE YOUR CODE GOES
+            // ================================
             let resumeUrl = null;
+
             if (req.file) {
-                resumeUrl = `/uploads/student/resumes/${req.file.filename}`;
+                const resumeResult = await uploadResumeToCloudinary(
+                    req.file.buffer,
+                    req.file.originalname
+                );
+
+                resumeUrl = resumeResult.secure_url;
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    message: "Resume is required",
+                });
             }
 
+            // ✅ INSERT APPLICATION
             const insertQuery = `
-                INSERT INTO job_applications
-                    (student_id, job_id, resume_url, job_title, company)
-                VALUES ($1, $2, $3, $4, $5)
-                RETURNING *
-            `;
+        INSERT INTO job_applications
+          (student_id, job_id, resume_url, job_title, company)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING *
+      `;
+
             const { rows } = await pool.query(insertQuery, [
                 studentId,
                 jobId,
@@ -704,15 +826,90 @@ exports.applyJob = [
                 company || null,
             ]);
 
-            res.status(201).json({ success: true, data: rows[0] });
+            return res.status(201).json({
+                success: true,
+                data: rows[0],
+            });
         } catch (err) {
-            console.error("APPLY JOB ERROR:", err.message);
-            res.status(500).json({ success: false, message: "Server error" });
+            console.error("APPLY JOB ERROR:", err);
+            return res.status(500).json({
+                success: false,
+                message: "Server error",
+            });
         }
-    }
+    },
 ];
-// GET /jobs/applied
+
+// // GET /student/applied-jobs
 exports.getAppliedJobs = async (req, res) => {
+    try {
+        const studentId = req.userId; // UUID from auth middleware
+
+        // Fetch applied jobs with job details from company_jobs
+        const query = `
+            SELECT 
+                ja.id AS application_id,
+                ja.job_id,
+                ja.resume_url,
+                ja.status AS application_status,
+                ja.created_at AS applied_at,
+
+                cj.title,
+                cj.company_id,
+                cj.location,
+                cj.location_type,
+                cj.pay_min,
+                cj.pay_max,
+                cj.pay_rate,
+                cj.experience_years,
+                cj.experience_type,
+                cj.description,
+                cj.status AS job_status,
+                c.name AS company_name,
+                c.industry AS company_industry
+
+            FROM job_applications ja
+            JOIN company_jobs cj ON ja.job_id = cj.id
+            JOIN companies c ON cj.company_id = c.id
+            WHERE ja.student_id = $1
+            ORDER BY ja.created_at DESC
+        `;
+
+        const { rows } = await pool.query(query, [studentId]);
+
+        // Optional: transform data for frontend display
+        const appliedJobs = rows.map(job => ({
+            applicationId: job.application_id,
+            jobId: job.job_id,
+            jobTitle: job.title,
+            companyId: job.company_id,
+            companyName: job.company_name,
+            companyIndustry: job.company_industry,
+            location: job.location,
+            locationType: job.location_type,
+            pay: job.pay_min && job.pay_max
+                ? `${job.pay_min} - ${job.pay_max} ${job.pay_rate || ""}`
+                : "As per company norms",
+            experience: job.experience_years
+                ? `${job.experience_years} yrs (${job.experience_type || "Any"})`
+                : "Not specified",
+            description: job.description,
+            jobStatus: job.job_status,
+            applicationStatus: job.application_status,
+            resumeUrl: job.resume_url,
+            appliedAt: job.applied_at,
+        }));
+
+        res.json({ success: true, data: appliedJobs });
+
+    } catch (err) {
+        console.error("GET APPLIED JOBS ERROR:", err.message);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+// GET /api/profile/jobs/applied-ids
+exports.getAppliedJobIds = async (req, res) => {
     try {
         const studentId = req.userId;
 
@@ -724,12 +921,126 @@ exports.getAppliedJobs = async (req, res) => {
 
         const { rows } = await pool.query(query, [studentId]);
 
-        // Convert all job IDs to strings
-        const appliedJobIds = rows.map(row => row.job_id.toString());
+        // Return ONLY job_ids (UUIDs)
+        const appliedJobIds = rows.map(row => row.job_id);
 
-        res.json({ success: true, data: appliedJobIds });
+        res.json({
+            success: true,
+            data: appliedJobIds
+        });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: "Server error" });
+        console.error("GET APPLIED JOB IDS ERROR:", err);
+        res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+};
+
+exports.getAppliedJobDetails = async (req, res) => {
+    try {
+        const studentId = req.userId;
+        const { applicationId } = req.params;
+
+        // 1️⃣ Validate application
+        const applicationRes = await pool.query(
+            `
+            SELECT job_id, status, created_at, resume_url
+            FROM job_applications
+            WHERE id = $1 AND student_id = $2
+            `,
+            [applicationId, studentId]
+        );
+
+        if (!applicationRes.rows.length) {
+            return res.status(404).json({ message: "Applied job not found" });
+        }
+
+        const application = applicationRes.rows[0];
+        const jobId = application.job_id;
+
+        // 2️⃣ Fetch job + company
+        const jobRes = await pool.query(
+            `
+    SELECT 
+        j.*,
+        c.name AS company_name,
+        c.industry,
+        c.website,
+        c.city AS company_location
+    FROM company_jobs j
+    JOIN companies c ON c.id = j.company_id
+    WHERE j.id = $1
+    `,
+            [jobId]
+        );
+
+        if (!jobRes.rows.length) {
+            return res.status(404).json({ message: "Job not found" });
+        }
+
+        const rawJob = jobRes.rows[0];
+
+        // 3️⃣ Fetch child tables
+        const safe = async (q, p) => {
+            try {
+                const r = await pool.query(q, p);
+                return r.rows.map(Object.values).flat();
+            } catch {
+                return [];
+            }
+        };
+
+        const [jobTypes, benefits, languages, shifts, questions] =
+            await Promise.all([
+                safe(`SELECT type FROM company_job_types WHERE job_id = $1`, [jobId]),
+                safe(`SELECT benefit FROM company_job_benefits WHERE job_id = $1`, [jobId]),
+                safe(`SELECT language FROM company_job_languages WHERE job_id = $1`, [jobId]),
+                safe(`SELECT shift FROM company_job_shifts WHERE job_id = $1`, [jobId]),
+                pool
+                    .query(
+                        `SELECT question, is_required FROM company_job_questions WHERE job_id = $1`,
+                        [jobId]
+                    )
+                    .then(r => r.rows)
+                    .catch(() => [])
+            ]);
+
+        // 4️⃣ Response (frontend-safe)
+        res.json({
+            application: {
+                id: applicationId,
+                status: application.status,
+                appliedAt: application.created_at,
+                resumeUrl: application.resume_url
+            },
+            job: {
+                id: rawJob.id,
+                title: rawJob.title,
+                description: rawJob.description,
+                location: rawJob.location,
+                locationType: rawJob.location_type,
+                experienceYears: rawJob.experience_years,
+                experienceType: rawJob.experience_type,
+                payMin: rawJob.pay_min,
+                payMax: rawJob.pay_max,
+                payRate: rawJob.pay_rate,
+
+                jobType: jobTypes,
+                selectedBenefits: benefits,
+                language: languages,
+                shift: shifts,
+                customQuestions: questions,
+
+                company_name: rawJob.company_name,
+                industry: rawJob.industry,
+                website: rawJob.website,
+                company_location: rawJob.company_location
+            }
+        });
+
+    } catch (err) {
+        console.error("STUDENT APPLIED JOB DETAILS ERROR:", err);
+        res.status(500).json({ message: "Server error" });
     }
 };

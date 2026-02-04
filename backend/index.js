@@ -11,7 +11,7 @@ const collegeRoutes = require("./routes/collegeRoutes");
 const companyRoutes = require("./routes/companyRoutes");
 const schoolRoutes = require("./routes/schoolRoutes");
 const universityRoutes = require("./routes/universityRoutes");
-
+const skillTestRoutes = require("./routes/Skilltestroutes");
 const app = express();
 
 // app.use(
@@ -20,7 +20,7 @@ const app = express();
 //         credentials: true,
 //     })
 // );
-console.log(process.env.FRONTEND_URL,"--->")
+console.log(process.env.FRONTEND_URL, "--->")
 app.use(
   cors({
     origin: process.env.FRONTEND_URL,
@@ -42,7 +42,8 @@ app.use("/api/college", collegeRoutes);
 app.use("/api/company", companyRoutes);
 app.use("/api/school", schoolRoutes);
 app.use("/api/university", universityRoutes);
+app.use("/api/skill-tests", skillTestRoutes);
 
 app.listen(process.env.PORT || 5000, () => {
-    console.log(`Server running on port ${process.env.PORT || 5000}`);
+  console.log(`Server running on port ${process.env.PORT || 5000}`);
 });

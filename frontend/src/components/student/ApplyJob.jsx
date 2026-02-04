@@ -42,7 +42,7 @@ export default function ApplyJob() {
             const token = localStorage.getItem("token");
 
             const res = await fetch(
-                "http://localhost:5000/api/profile/student/basic-info",
+                "http://localhost:5000/api/student/student/basic-info",
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -67,7 +67,7 @@ export default function ApplyJob() {
         const fetchJobDetails = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await fetch(`http://localhost:5000/api/profile/companies`, {
+                const res = await fetch(`http://localhost:5000/api/student/companies`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
@@ -76,8 +76,8 @@ export default function ApplyJob() {
                 const job = allJobs.find((j) => j.id === jobId);
                 if (job) {
                     setFormData({
-                        jobTitle: job.title,
-                        company: job.company || job.company_name,
+                        jobTitle: job.title ?? "",
+                        company: job.company ?? job.company_name ?? "",
                     });
                 }
             } catch (err) {
@@ -179,7 +179,7 @@ export default function ApplyJob() {
             form.append("company", formData.company);
 
             const res = await fetch(
-                "http://localhost:5000/api/profile/jobs/apply",
+                "http://localhost:5000/api/student/jobs/apply",
                 {
                     method: "POST",
                     headers: {

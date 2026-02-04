@@ -37,6 +37,7 @@ const formatDate = (dateString) => {
 export default function StudentProfile() {
     const navigate = useNavigate();
     const [displayName, setDisplayName] = useState("Your profile");
+    const [userId, setUserId] = useState(null);
     const [profile, setProfile] = useState({ 
         state: "", city: "", dob: "", phone: "", bio: "", profile_image_url: "", banner_image_url: "", headline: ""
     });
@@ -91,6 +92,7 @@ export default function StudentProfile() {
             const data = await res.json();
             if (res.ok) {
                 const p = data.profile || {};
+                setUserId(data.id);
                 setProfile({
                     state: p.state || "", city: p.city || "", dob: p.dob ? p.dob.substring(0, 10) : "",
                     phone: p.phone || "", bio: p.bio || "", profile_image_url: p.profile_image_url || "",
@@ -367,9 +369,21 @@ export default function StudentProfile() {
 
                         {/* Public Profile URL Card */}
                         <SectionCard title="Public profile & URL">
-                            <p className="text-sm text-gray-600 break-all">
-                                www.ccs.com/in/{displayName.toLowerCase().replace(/\s+/g, "-")}
-                            </p>
+                            {userId ? (
+                                <div className="space-y-2">
+                                    <p className="text-sm text-gray-600 break-all">
+                                        {window.location.origin}/student/{userId}
+                                    </p>
+                                    <button
+                                        onClick={() => window.open(`/student/${userId}`, '_blank')}
+                                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                    >
+                                        View Public Profile â†’
+                                    </button>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-600">Loading...</p>
+                            )}
                         </SectionCard>
                     </div>
                 </div>
@@ -938,7 +952,7 @@ export default function StudentProfile() {
                                             }
                                             title={cert.name}
                                             subtitle={cert.issuing_organization}
-                                            period={`Issued ${formatDate(cert.issue_date)}${cert.expiry_date ? ` · Expires ${formatDate(cert.expiry_date)}` : ''}`}
+                                            period={`Issued ${formatDate(cert.issue_date)}${cert.expiry_date ? ` ï¿½ Expires ${formatDate(cert.expiry_date)}` : ''}`}
                                             description={cert.credential_id ? `Credential ID: ${cert.credential_id}` : null}
                                             link={cert.credential_url ? { url: cert.credential_url, text: "Show credential" } : null}
                                             onDelete={() => deleteCertification(cert.id)}

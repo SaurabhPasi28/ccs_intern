@@ -73,6 +73,7 @@ import Dashboard from "./components/Dashboard";
 import StudentProfile from "./components/student/StudentProfile";
 import SchoolProfile from "./components/school/SchoolProfile";
 import CollegeProfile from "./components/college/CollegeProfile";
+import CollegePublicProfile from "./components/college/CollegePublicProfile";
 import UniversityProfile from "./components/university/UniversityProfile";
 import CompanyProfile from "./components/company/CompanyProfile";
 import CompanyPublicProfile from "./components/company/CompanyPublicProfile";
@@ -86,6 +87,13 @@ import PublicJobPage from "./components/publicJobPage";
 /* Admin Pages */
 import AdminDashboard from "./components/admin/adminDashboard";
 import UserListPage from "./components/admin/userTypePage";
+import StudentAppliedJobs from "./components/student/StudentAppliedJobs";
+import AppliedJobDetails from "./components/student/AppliedJobDetails";
+/* Skill Test Pages - CATEGORY-BASED */
+import SkillTestCategories from "./components/student/exam/SkillTestSimplified.jsx";
+import SkillTestInstructions from "./components/student/exam/SkillTestInstructions_ModuleBased";
+import SkillTest from "./components/student/exam/SkillTestModular";
+import SkillTestResult from "./components/student/exam/Skilltestresult";
 /* ---------------- Route Guards ---------------- */
 
 function PrivateRoute({ children }) {
@@ -164,6 +172,7 @@ function App() {
         {/*Bellow two are lines added by me */}
         {/* Public Company Profile - No Authentication Required */}
         <Route path="/company/:id" element={<CompanyPublicProfile />} />
+        <Route path="/college/:id" element={<CollegePublicProfile />} />
         <Route path="/student/:id" element={<StudentPublicProfile />} />
         <Route path="/school/check" element={<SchoolPublicProfile />} />
         {/* <Route path="/company/check" element={<CompanyPublicProfile />} /> */}
@@ -260,10 +269,82 @@ function App() {
             </PrivateRoute>
           }
         />
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        <Route path="/userTypePage" element={<UserListPage />} />
-        <Route path="/jobs" element={<PublicJobPage />} />
+        <Route
+          path="/student/applied-jobs"
+          element={
+            <PrivateRoute>
+              <StudentAppliedJobs />
+            </PrivateRoute>
+          }
+        />
 
+        <Route
+          path="/jobs/applied/:applicationId"
+          element={
+            <PrivateRoute>
+              <AppliedJobDetails />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Main page - Shows categories with expandable tests */}
+        <Route
+          path="/student/skill-test"
+          element={
+            <PrivateRoute>
+              <SkillTestCategories />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Individual test instructions page */}
+        <Route
+          path="/student/skill-test/:testId"
+          element={
+            <PrivateRoute>
+              <SkillTestInstructions />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Test taking page */}
+        <Route
+          path="/student/skill-test/:testId/take"
+          element={
+            <PrivateRoute>
+              <SkillTest />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Result page */}
+        <Route
+          path="/student/skill-test/result"
+          element={
+            <PrivateRoute>
+              <SkillTestResult />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Admin routes */}
+        <Route
+          path="/admin-dashboard"
+          element={
+            <PrivateRoute>
+              <AdminDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/userTypePage"
+          element={
+            <PrivateRoute>
+              <UserListPage />
+            </PrivateRoute>
+          }
+        />
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

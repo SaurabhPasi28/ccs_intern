@@ -66,7 +66,7 @@ const uploadToCloudinary = async (buffer, entityType, imageType, options = {}) =
 const deleteFromCloudinary = async (publicId) => {
   try {
     if (!publicId) return null;
-    console.log("trying to delete the old image from the cloudinary------------>",publicId)
+    console.log("trying to delete the old image from the cloudinary------------>", publicId)
     return await cloudinary.uploader.destroy(publicId);
   } catch (error) {
     console.error("Cloudinary deletion error:", error);

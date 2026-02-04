@@ -80,6 +80,7 @@ export default function CollegeProfile() {
     const token = localStorage.getItem("token");
     const [loading, setLoading] = useState(true);
     const [displayName, setDisplayName] = useState("Your College");
+    const [userId, setUserId] = useState(null);
     const [showEditMenu, setShowEditMenu] = useState(false);
 
     // Loading states
@@ -170,6 +171,7 @@ export default function CollegeProfile() {
             const { ok, data } = await apiCall(`${API_URL}/college`, "GET");
             if (ok) {
                 const c = data.college || {};
+                setUserId(data.id);
                 setCollege({
                     name: c.name || "",
                     established_year: c.established_year || "",
@@ -1003,7 +1005,7 @@ export default function CollegeProfile() {
                                         <img 
                                             src={qrCode.qrCode} 
                                             alt="Registration QR Code" 
-                                            className="w-full max-w-[200px]"
+                                            className="w-full max-w-50"
                                         />
                                     </div>
                                     <p className="text-xs text-gray-600 text-center">
@@ -1029,39 +1031,55 @@ export default function CollegeProfile() {
                         </SectionCard>
 
                         {/* Quick Info Card */}
-                        {college.established_year && (
-                            <SectionCard title="Quick Info">
-                                <div className="space-y-3 text-sm">
-                                    {college.established_year && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Established</span>
-                                            <span className="font-medium text-gray-900">{college.established_year}</span>
-                                        </div>
-                                    )}
-                                    {college.accreditation && (
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Accreditation</span>
-                                            <span className="font-medium text-gray-900">{college.accreditation}</span>
-                                        </div>
-                                    )}
-                                    {college.website_url && (
-                                        <div className="pt-2 border-t">
-                                            <a
-                                                href={college.website_url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                                            >
-                                                Visit Website
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                </svg>
-                                            </a>
-                                        </div>
-                                    )}
+                        <SectionCard title="Public profile & URL">
+                            {userId ? (
+                                <div className="space-y-2">
+                                    <p className="text-sm text-gray-600 break-all">
+                                        {window.location.origin}/college/{userId}
+                                    </p>
+                                    <button
+                                        onClick={() => window.open(`/college/${userId}`, '_blank')}
+                                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                                    >
+                                        View Public Profile →
+                                    </button>
                                 </div>
-                            </SectionCard>
-                        )}
+                            ) : (
+                                <p className="text-sm text-gray-600">Loading...</p>
+                            )}
+                        </SectionCard>
+
+                        <SectionCard title="Quick Info">
+                            <div className="space-y-3 text-sm">
+                                {college.established_year && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Established</span>
+                                        <span className="font-medium text-gray-900">{college.established_year}</span>
+                                    </div>
+                                )}
+                                {college.accreditation && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Accreditation</span>
+                                        <span className="font-medium text-gray-900">{college.accreditation}</span>
+                                    </div>
+                                )}
+                                {college.website_url && (
+                                    <div className="pt-2 border-t">
+                                        <a
+                                            href={college.website_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                        >
+                                            Visit Website
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        </SectionCard>
                     </div>
                 </div>
             </div>
